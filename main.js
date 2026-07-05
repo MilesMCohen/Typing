@@ -41,11 +41,15 @@ saveBtn.addEventListener("click", async () => {
     return;
   }
   const bestScore = Number(scoreInput.value) || 0;
-  await setDoc(doc(db, "users", currentUser.uid), {
-    bestScore,
-    lastPlayedAt: serverTimestamp(),
-  }, { merge: true });
-  status.textContent = `Saved bestScore=${bestScore} to cloud.`;
+  try {
+    await setDoc(doc(db, "users", currentUser.uid), {
+      bestScore,
+      lastPlayedAt: serverTimestamp(),
+    }, { merge: true });
+    status.textContent = `Saved bestScore=${bestScore} to cloud.`;
+  } catch (err) {
+    status.textContent = `Save error: ${err.message}`;
+  }
 });
 
 loadBtn.addEventListener("click", async () => {
@@ -53,8 +57,12 @@ loadBtn.addEventListener("click", async () => {
     status.textContent = "Sign in first.";
     return;
   }
-  const snap = await getDoc(doc(db, "users", currentUser.uid));
-  status.textContent = snap.exists()
-    ? `Loaded from cloud: bestScore=${snap.data().bestScore}`
-    : "No saved data yet.";
+  try {
+    const snap = await getDoc(doc(db, "users", currentUser.uid));
+    status.textContent = snap.exists()
+      ? `Loaded from cloud: bestScore=${snap.data().bestScore}`
+      : "No saved data yet.";
+  } catch (err) {
+    status.textContent = `Load error: ${err.message}`;
+  }
 });
