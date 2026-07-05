@@ -256,6 +256,19 @@ describe("TEST_LEVELS", () => {
     expect(TEST_LEVELS[0].stageIndex).toBe(0);
     expect(TEST_LEVELS[TEST_LEVELS.length - 1].stageIndex).toBe(MAX_STAGE);
   });
+
+  it("has a 'most of' tier right before each row's harder reach pair unlocks", () => {
+    const letters = (id) => {
+      const level = TEST_LEVELS.find((l) => l.id === id);
+      return new Set(unlockedLettersForStage(level.stageIndex));
+    };
+    expect(letters("most-home-row").has("g")).toBe(false);
+    expect(letters("home-row").has("g")).toBe(true);
+    expect(letters("most-top-row").has("t")).toBe(false);
+    expect(letters("home-upper").has("t")).toBe(true);
+    expect(letters("most-letters").has("b")).toBe(false);
+    expect(letters("all-letters").has("b")).toBe(true);
+  });
 });
 
 describe("buildTestRound", () => {

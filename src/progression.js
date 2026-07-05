@@ -74,10 +74,16 @@ const WORD_BANK = Array.from(
 // Named jumping-off points for the placement test, roughly in increasing
 // difficulty. stageIndex ties each one back into the same stage scale used
 // by the adaptive lesson track, so a test result can seed `history` directly.
+// The "most of ___" tiers sit right before each row's harder index-finger
+// reach pair (g/h, t/y, b/n) unlocks, mirroring KEY_STAGES' own consolidation
+// stages, so placement can land just before or after the hardest part of a row.
 export const TEST_LEVELS = [
   { id: "few-letters", label: "A few letters", stageIndex: 0 },
+  { id: "most-home-row", label: "Most of the home row", stageIndex: 3 },
   { id: "home-row", label: "Home row", stageIndex: 5 },
+  { id: "most-top-row", label: "Home row and most of the top row", stageIndex: 9 },
   { id: "home-upper", label: "Home and upper row", stageIndex: 11 },
+  { id: "most-letters", label: "Most letters", stageIndex: 14 },
   { id: "all-letters", label: "All letters", stageIndex: KEY_STAGES.length - 1 },
   { id: "letters-capitals", label: "Letters with capitals", stageIndex: CAPITALS_STAGE },
   { id: "letters-numbers", label: "Letters and numbers", stageIndex: NUMBERS_STAGE },
