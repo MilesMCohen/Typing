@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { getCharStatuses, computeAccuracy, computeWpm } from "./typing.js";
-import { WORDS_PER_LINE } from "./lessons.js";
+import { WORDS_PER_LINE, splitIntoLines } from "./lessons.js";
 import SnowLeopard from "./SnowLeopard.jsx";
 
 const STATUS_COLORS = {
@@ -17,22 +17,7 @@ export default function Game({ lesson, words, onComplete }) {
   const startTimeRef = useRef(null);
   const inputRef = useRef(null);
 
-  // Split the flat target string into display rows of WORDS_PER_LINE words
-  // each, without altering the underlying string used for scoring.
-  const lines = useMemo(() => {
-    let offset = 0;
-    const rows = [];
-    for (let i = 0; i < words.length; i += WORDS_PER_LINE) {
-      const group = words.slice(i, i + WORDS_PER_LINE);
-      const isLastGroup = i + WORDS_PER_LINE >= words.length;
-      const start = offset;
-      let end = start + group.join(" ").length;
-      if (!isLastGroup) end += 1; // absorb the separator space before the next row
-      rows.push({ start, end });
-      offset = end;
-    }
-    return rows;
-  }, [words]);
+  const lines = useMemo(() => splitIntoLines(words, WORDS_PER_LINE), [words]);
 
   const progress = target.length > 0 ? typed.length / target.length : 0;
 

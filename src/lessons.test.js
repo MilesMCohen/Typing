@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { LESSONS, randomWords } from "./lessons.js";
+import { LESSONS, randomWords, splitIntoLines } from "./lessons.js";
 
 describe("LESSONS", () => {
   it("each lesson has an id, label, and a non-empty word list", () => {
@@ -29,5 +29,37 @@ describe("randomWords", () => {
     const result = randomWords(words, 8);
     expect(result).toHaveLength(8);
     for (const word of result) expect(words).toContain(word);
+  });
+});
+
+describe("splitIntoLines", () => {
+  const words = ["aa", "bb", "cc", "dd", "ee", "ff", "gg", "hh", "ii", "jj"];
+  const target = words.join(" ");
+
+  it("covers every character of the joined string exactly once, in order", () => {
+    const lines = splitIntoLines(words, 4);
+    expect(lines[0].start).toBe(0);
+    expect(lines[lines.length - 1].end).toBe(target.length);
+    for (let i = 1; i < lines.length; i++) {
+      expect(lines[i].start).toBe(lines[i - 1].end);
+    }
+  });
+
+  it("groups the requested number of words per line", () => {
+    const lines = splitIntoLines(words, 4);
+    expect(lines).toHaveLength(3); // 4 + 4 + 2 words
+    const firstLineText = target.slice(lines[0].start, lines[0].end);
+    expect(firstLineText).toBe("aa bb cc dd "); // trailing separator space absorbed
+  });
+
+  it("does not absorb a trailing separator space after the last line", () => {
+    const lines = splitIntoLines(words, 4);
+    const lastLineText = target.slice(lines[lines.length - 1].start, lines[lines.length - 1].end);
+    expect(lastLineText).toBe("ii jj");
+  });
+
+  it("handles a word count that divides evenly with no remainder line", () => {
+    const lines = splitIntoLines(words, 5);
+    expect(lines).toHaveLength(2);
   });
 });

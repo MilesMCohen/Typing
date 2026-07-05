@@ -39,6 +39,25 @@ export const WORDS_PER_LINE = 8;
 export const LINES_PER_ROUND = 3;
 export const WORDS_PER_ROUND = WORDS_PER_LINE * LINES_PER_ROUND;
 
+// Splits a flat list of words into { start, end } character offsets into
+// `words.join(" ")`, grouping wordsPerLine words per row for display. Each
+// row's end absorbs the separator space before the next row, so every
+// character of the joined string belongs to exactly one row.
+export function splitIntoLines(words, wordsPerLine) {
+  let offset = 0;
+  const rows = [];
+  for (let i = 0; i < words.length; i += wordsPerLine) {
+    const group = words.slice(i, i + wordsPerLine);
+    const isLastGroup = i + wordsPerLine >= words.length;
+    const start = offset;
+    let end = start + group.join(" ").length;
+    if (!isLastGroup) end += 1;
+    rows.push({ start, end });
+    offset = end;
+  }
+  return rows;
+}
+
 export function randomWords(words, count) {
   const shuffled = [...words].sort(() => Math.random() - 0.5);
   if (shuffled.length >= count) return shuffled.slice(0, count);

@@ -1,32 +1,13 @@
 import { useEffect, useRef } from "react";
 import { Application, Container, Graphics } from "pixi.js";
+import { hash, jitter, buildCrags, leopardPosition } from "./terrain.js";
 
 const CANVAS_W = 360;
 const CANVAS_H = 180;
 const ANCHOR_X = 120; // fixed screen x where the leopard always sits; the world scrolls under it
-const JUMP_ARC = 26;
 const EASE = 0.1; // how quickly the displayed position chases the real typing progress
-
-// Deterministic pseudo-random so the terrain looks the same on every load
-// instead of jittering around on each mount.
-function hash(i) {
-  return (Math.sin(i * 12.9898) * 43758.5453) % 1;
-}
-function jitter(i, amount) {
-  return (hash(i) - Math.floor(hash(i))) * amount - amount / 2;
-}
-
-// Crags the leopard jumps between. Bumpy mid-heights, ground at the start,
-// a tall snow-capped peak (with food waiting) at the end.
 const NUM_CRAGS = 9;
-const CRAGS = Array.from({ length: NUM_CRAGS }, (_, i) => {
-  const worldX = 60 + i * 150 + jitter(i, 30);
-  let y;
-  if (i === 0) y = 150;
-  else if (i === NUM_CRAGS - 1) y = 34;
-  else y = 105 + jitter(i + 50, 44);
-  return { worldX, y };
-});
+const CRAGS = buildCrags(NUM_CRAGS);
 const PEAK = CRAGS[CRAGS.length - 1];
 const SNOW_LINE = 95;
 
@@ -47,19 +28,6 @@ function crestPolygon(wx, wy, i) {
 
 function backdropPolygon(points, baseY) {
   return [0, baseY, ...points, CANVAS_W, baseY, CANVAS_W, CANVAS_H, 0, CANVAS_H];
-}
-
-function leopardPosition(progress) {
-  const segments = CRAGS.length - 1;
-  const clamped = Math.min(Math.max(progress, 0), 1);
-  const scaled = clamped * segments;
-  const segIndex = Math.min(Math.floor(scaled), segments - 1);
-  const t = clamped >= 1 ? 1 : scaled - segIndex;
-  const from = CRAGS[segIndex];
-  const to = CRAGS[segIndex + 1];
-  const worldX = from.worldX + (to.worldX - from.worldX) * t;
-  const y = from.y + (to.y - from.y) * t - JUMP_ARC * Math.sin(Math.PI * t);
-  return { worldX, y };
 }
 
 function buildLeopard() {
@@ -193,7 +161,7 @@ export default function SnowLeopard({ progress = 0 }) {
           elapsed += ticker.deltaMS / 1000;
           displayed += (progressRef.current - displayed) * Math.min(1, EASE * dt);
 
-          const { worldX, y } = leopardPosition(displayed);
+          const { worldX, y } = leopardPosition(CRAGS, displayed);
           const cameraX = ANCHOR_X - worldX;
 
           terrainLayer.x = cameraX;
