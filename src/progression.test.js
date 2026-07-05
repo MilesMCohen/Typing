@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   CAPITALS_STAGE,
+  DEFAULT_WPM_TARGET,
+  GRADE_WPM_TARGETS,
   KEY_STAGES,
   MAX_STAGE,
   NUMBERS_STAGE,
@@ -135,6 +137,21 @@ describe("decideNextStage", () => {
     expect(decideNextStage(history)).toEqual({ stageIndex: MAX_STAGE, direction: "mastered" });
   });
 
+  it("holds for speed instead of advancing when accuracy is high but wpm is below target", () => {
+    const history = [{ stageIndex: 2, accuracy: 99, wpm: 10 }];
+    expect(decideNextStage(history, 20)).toEqual({ stageIndex: 2, direction: "hold-speed" });
+  });
+
+  it("does not report mastered at the final stage until the wpm target is met", () => {
+    const history = [{ stageIndex: MAX_STAGE, accuracy: 99, wpm: 10 }];
+    expect(decideNextStage(history, 20)).toEqual({ stageIndex: MAX_STAGE, direction: "hold-speed" });
+  });
+
+  it("uses a lower default wpm bar when no target is given", () => {
+    const history = [{ stageIndex: 2, accuracy: 99, wpm: DEFAULT_WPM_TARGET }];
+    expect(decideNextStage(history)).toEqual({ stageIndex: 3, direction: "advance" });
+  });
+
   it("holds the stage steady for middling accuracy", () => {
     const history = [{ stageIndex: 3, accuracy: 85, wpm: 20 }];
     expect(decideNextStage(history)).toEqual({ stageIndex: 3, direction: "hold" });
@@ -252,5 +269,23 @@ describe("buildLessonPlan", () => {
     expect(plan.unlockedLetters).toEqual(KEY_STAGES[0]);
     expect(plan.words.length).toBeGreaterThan(0);
     expect(plan.label).toBe("Level 1");
+  });
+
+  it("threads a custom wpm target through to the stage decision", () => {
+    const history = [{ stageIndex: 2, accuracy: 99, wpm: 10 }];
+    expect(buildLessonPlan(history, 20).direction).toBe("hold-speed");
+    expect(buildLessonPlan(history, 5).direction).toBe("advance");
+  });
+});
+
+describe("GRADE_WPM_TARGETS", () => {
+  it("is ordered by increasing wpm from 1st to 6th grade", () => {
+    for (let i = 1; i < GRADE_WPM_TARGETS.length; i++) {
+      expect(GRADE_WPM_TARGETS[i].wpm).toBeGreaterThan(GRADE_WPM_TARGETS[i - 1].wpm);
+    }
+  });
+
+  it("includes the default target as one of the grade presets", () => {
+    expect(GRADE_WPM_TARGETS.some((g) => g.wpm === DEFAULT_WPM_TARGET)).toBe(true);
   });
 });

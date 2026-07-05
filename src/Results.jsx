@@ -14,12 +14,14 @@ const DIRECTION_MESSAGES = {
   start: "Let's get started!",
   advance: "🎉 Great job — leveling up next time!",
   hold: "💪 Keep practicing these letters",
+  "hold-speed": "⚡ You know these letters — let's build speed before moving on!",
   regress: "🐢 Let's slow down and review",
-  mastered: "🏆 You've mastered the full keyboard!",
+  mastered: "🏆 You've hit your speed goal on the full keyboard!",
 };
 
-export default function Results({ lesson, stats, onPlayAgain, onBackToMenu }) {
+export default function Results({ lesson, stats, wpmTarget, onPlayAgain, onBackToMenu }) {
   const letters = letterBreakdown(stats.letterStats);
+  const goalPercent = wpmTarget ? Math.min(100, Math.round((stats.wpm / wpmTarget) * 100)) : null;
 
   return (
     <motion.div
@@ -41,6 +43,24 @@ export default function Results({ lesson, stats, onPlayAgain, onBackToMenu }) {
         {stats.wpm} wpm
       </motion.div>
       <div style={{ fontSize: 20 }}>{stats.accuracy}% accuracy</div>
+
+      {goalPercent != null && (
+        <div style={{ width: "100%", maxWidth: 260 }}>
+          <div style={{ fontSize: 12, color: "#888", marginBottom: 4, textAlign: "center" }}>
+            {stats.wpm} / {wpmTarget} wpm goal
+          </div>
+          <div style={{ height: 10, borderRadius: 5, background: "#333", overflow: "hidden" }}>
+            <div
+              style={{
+                height: "100%",
+                width: `${goalPercent}%`,
+                background: goalPercent >= 100 ? "#6f6" : "#5cf",
+                transition: "width 0.4s ease",
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       <div style={{ fontSize: 16, color: "#ccc" }}>{DIRECTION_MESSAGES[stats.direction]}</div>
       {stats.weakLetters?.length > 0 && (

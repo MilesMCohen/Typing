@@ -28,6 +28,20 @@ export const MAX_STAGE = SYMBOLS_STAGE;
 
 export const MAX_HISTORY = 5;
 
+// Grade-level wpm benchmarks (roughly following common school keyboarding
+// curricula), used both to seed the default target and to let a parent pick
+// a target that matches where their kid is headed.
+export const GRADE_WPM_TARGETS = [
+  { id: "1st", label: "1st grade", wpm: 5 },
+  { id: "2nd", label: "2nd grade", wpm: 8 },
+  { id: "3rd", label: "3rd grade", wpm: 12 },
+  { id: "4th", label: "4th grade", wpm: 20 },
+  { id: "5th", label: "5th grade", wpm: 25 },
+  { id: "6th", label: "6th grade", wpm: 30 },
+];
+
+export const DEFAULT_WPM_TARGET = 20;
+
 const ADVANCE_ACCURACY = 95;
 const HOLD_ACCURACY = 80;
 const REGRESS_ACCURACY = 75;
@@ -146,7 +160,12 @@ export function weakLetters(
     .map((entry) => entry.letter);
 }
 
-export function decideNextStage(history) {
+// wpmTarget gates advancement deliberately: accuracy alone measures whether a
+// kid knows where the letters are, but a kid who already knows the content
+// can be accurate while still hunting-and-pecking. Requiring the wpm target
+// too means she has to actually build touch-typing speed at a stage before
+// more letters unlock, rather than racing through content she already knows.
+export function decideNextStage(history, wpmTarget = DEFAULT_WPM_TARGET) {
   if (history.length === 0) return { stageIndex: 0, direction: "start" };
 
   const baseStage = history[history.length - 1].stageIndex;
@@ -158,6 +177,7 @@ export function decideNextStage(history) {
     return { stageIndex: Math.max(0, baseStage - 1), direction: "regress" };
   }
   if (avgAccuracy >= ADVANCE_ACCURACY && !slowedDown) {
+    if (avgWpm < wpmTarget) return { stageIndex: baseStage, direction: "hold-speed" };
     if (baseStage >= MAX_STAGE) return { stageIndex: baseStage, direction: "mastered" };
     return { stageIndex: baseStage + 1, direction: "advance" };
   }
@@ -234,8 +254,8 @@ export function generateRoundWords(stageIndex, weak, count = WORDS_PER_ROUND) {
   return words;
 }
 
-export function buildLessonPlan(history) {
-  const { stageIndex, direction } = decideNextStage(history);
+export function buildLessonPlan(history, wpmTarget = DEFAULT_WPM_TARGET) {
+  const { stageIndex, direction } = decideNextStage(history, wpmTarget);
   const unlockedLetters = unlockedLettersForStage(stageIndex);
   const { letterTotals } = aggregateHistory(history);
   const weak = weakLetters(letterTotals, unlockedLetters);

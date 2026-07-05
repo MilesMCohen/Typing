@@ -3,12 +3,13 @@ import { AnimatePresence } from "framer-motion";
 import { auth, db } from "./firebase.js";
 import { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
 import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
-import { TEST_LEVELS, buildLessonPlan, buildTestRound, evaluateTestResult } from "./progression.js";
+import { DEFAULT_WPM_TARGET, TEST_LEVELS, buildLessonPlan, buildTestRound, evaluateTestResult } from "./progression.js";
 import Menu from "./Menu.jsx";
 import Game from "./Game.jsx";
 import Results from "./Results.jsx";
 import TestSelect from "./TestSelect.jsx";
 import TestResults from "./TestResults.jsx";
+import Settings from "./Settings.jsx";
 
 const containerStyle = {
   fontFamily: "sans-serif",
@@ -30,6 +31,7 @@ export default function App() {
   const [status, setStatus] = useState("");
   const [screen, setScreen] = useState("menu");
   const [history, setHistory] = useState([]);
+  const [wpmTarget, setWpmTarget] = useState(DEFAULT_WPM_TARGET);
   const [lessonPlan, setLessonPlan] = useState(null);
   const [resultsData, setResultsData] = useState(null);
   const [testLevel, setTestLevel] = useState(null);
@@ -42,16 +44,25 @@ export default function App() {
     if (!user) {
       setBestScore(null);
       setHistory([]);
+      setWpmTarget(DEFAULT_WPM_TARGET);
       return;
     }
     getDoc(doc(db, "users", user.uid)).then((snap) => {
       const data = snap.exists() ? snap.data() : null;
       setBestScore(data?.bestScore ?? null);
       setHistory(data?.progression?.history ?? []);
+      setWpmTarget(data?.wpmTarget ?? DEFAULT_WPM_TARGET);
     });
   }, [user]);
 
-  const nextPlan = useMemo(() => buildLessonPlan(history), [history]);
+  const nextPlan = useMemo(() => buildLessonPlan(history, wpmTarget), [history, wpmTarget]);
+
+  const updateWpmTarget = (newTarget) => {
+    setWpmTarget(newTarget);
+    if (user) {
+      setDoc(doc(db, "users", user.uid), { wpmTarget: newTarget }, { merge: true });
+    }
+  };
 
   const handleSignIn = async () => {
     try {
@@ -160,11 +171,16 @@ export default function App() {
             bestScore={bestScore}
             status={status}
             plan={nextPlan}
+            wpmTarget={wpmTarget}
             onSignIn={handleSignIn}
             onSignOut={() => signOut(auth)}
             onStart={startLesson}
             onOpenTest={() => setScreen("test-select")}
+            onOpenSettings={() => setScreen("settings")}
           />
+        )}
+        {screen === "settings" && (
+          <Settings key="settings" wpmTarget={wpmTarget} onSetWpmTarget={updateWpmTarget} onBack={() => setScreen("menu")} />
         )}
         {screen === "game" && (
           <Game
@@ -180,6 +196,7 @@ export default function App() {
             key="results"
             lesson={lessonPlan}
             stats={resultsData}
+            wpmTarget={wpmTarget}
             onPlayAgain={startLesson}
             onBackToMenu={() => setScreen("menu")}
           />
