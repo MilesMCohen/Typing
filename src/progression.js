@@ -28,9 +28,11 @@ export const MAX_STAGE = SYMBOLS_STAGE;
 
 export const MAX_HISTORY = 5;
 
-// Grade-level wpm benchmarks (roughly following common school keyboarding
-// curricula), used both to seed the default target and to let a parent pick
-// a target that matches where their kid is headed.
+// Speed targets from early school benchmarks up through adult proficiency
+// levels, used both to seed the default target and to let anyone — a kid or
+// a parent practicing alongside them — pick a target that matches where
+// they're headed. Roughly follows common school keyboarding curricula for
+// the grade entries, and typical adult typing-speed benchmarks beyond that.
 export const GRADE_WPM_TARGETS = [
   { id: "1st", label: "1st grade", wpm: 5 },
   { id: "2nd", label: "2nd grade", wpm: 8 },
@@ -38,6 +40,12 @@ export const GRADE_WPM_TARGETS = [
   { id: "4th", label: "4th grade", wpm: 20 },
   { id: "5th", label: "5th grade", wpm: 25 },
   { id: "6th", label: "6th grade", wpm: 30 },
+  { id: "7th", label: "7th grade", wpm: 35 },
+  { id: "8th", label: "8th grade", wpm: 40 },
+  { id: "high-school", label: "High school", wpm: 50 },
+  { id: "adult", label: "Adult average", wpm: 60 },
+  { id: "proficient", label: "Proficient", wpm: 75 },
+  { id: "expert", label: "Expert", wpm: 100 },
 ];
 
 export const DEFAULT_WPM_TARGET = 20;

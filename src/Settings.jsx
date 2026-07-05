@@ -20,8 +20,9 @@ export default function Settings({ wpmTarget, onSetWpmTarget, onBack }) {
     >
       <div style={{ fontSize: 28, fontWeight: "bold" }}>Settings</div>
       <div style={{ color: "#aaa", textAlign: "center" }}>
-        Speed (wpm) matters more than accuracy here — letters only unlock once she's actually fast at
-        the ones she already knows. Pick a grade-level target to aim for.
+        Speed (wpm) matters more than accuracy here — new letters only unlock once you're actually
+        fast at the ones you already know. Pick a target to aim for, from early school benchmarks up
+        to adult typing speeds.
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8, width: "100%" }}>
         {GRADE_WPM_TARGETS.map((grade) => (

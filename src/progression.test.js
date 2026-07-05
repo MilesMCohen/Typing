@@ -302,13 +302,17 @@ describe("buildLessonPlan", () => {
 });
 
 describe("GRADE_WPM_TARGETS", () => {
-  it("is ordered by increasing wpm from 1st to 6th grade", () => {
+  it("is ordered by strictly increasing wpm", () => {
     for (let i = 1; i < GRADE_WPM_TARGETS.length; i++) {
       expect(GRADE_WPM_TARGETS[i].wpm).toBeGreaterThan(GRADE_WPM_TARGETS[i - 1].wpm);
     }
   });
 
-  it("includes the default target as one of the grade presets", () => {
+  it("includes the default target as one of the presets", () => {
     expect(GRADE_WPM_TARGETS.some((g) => g.wpm === DEFAULT_WPM_TARGET)).toBe(true);
+  });
+
+  it("reaches up to 100 wpm for adult proficiency levels", () => {
+    expect(GRADE_WPM_TARGETS[GRADE_WPM_TARGETS.length - 1].wpm).toBe(100);
   });
 });
