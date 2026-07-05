@@ -43,6 +43,23 @@ describe("unlockedLettersForStage", () => {
     const all = KEY_STAGES.flat();
     expect(new Set(all).size).toBe(26);
   });
+
+  it("does not unlock any new letters at an empty consolidation stage", () => {
+    const emptyStageIndex = KEY_STAGES.findIndex((stage) => stage.length === 0);
+    expect(emptyStageIndex).toBeGreaterThan(0);
+    expect(unlockedLettersForStage(emptyStageIndex)).toEqual(unlockedLettersForStage(emptyStageIndex - 1));
+  });
+
+  it("introduces the index-finger reach pair (g/h, t/y, b/n) after the rest of its row", () => {
+    const indexOf = (pair) => KEY_STAGES.findIndex((stage) => stage.join("") === pair.join(""));
+    const homeRow = [["f", "j"], ["d", "k"], ["s", "l"], ["a"]];
+    const topRow = [["e", "i"], ["r", "u"], ["w", "o"], ["q", "p"]];
+    const bottomRow = [["c", "v"], ["m", "x"], ["z"]];
+
+    expect(homeRow.every((pair) => indexOf(pair) < indexOf(["g", "h"]))).toBe(true);
+    expect(topRow.every((pair) => indexOf(pair) < indexOf(["t", "y"]))).toBe(true);
+    expect(bottomRow.every((pair) => indexOf(pair) < indexOf(["b", "n"]))).toBe(true);
+  });
 });
 
 describe("getLetterStats", () => {

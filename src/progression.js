@@ -1,22 +1,31 @@
 import { LESSONS, WORDS_PER_ROUND, randomWords } from "./lessons.js";
 
-// Letters unlock two at a time, home row first, mirroring standard touch-typing
-// pedagogy (and the old Home Row / Upper Row / Full Keyboard lessons).
+// Letters unlock a pair at a time, home row first, mirroring standard
+// touch-typing pedagogy (and the old Home Row / Upper Row / Full Keyboard
+// lessons). Within each row, the "reach" pair typed by the index fingers
+// sliding off their home column (g/h, t/y, b/n) is deliberately introduced
+// last, since it requires real finger movement even though g/h still sits
+// on the home row. An empty stage right before each reach pair repeats an
+// extra round on that row's easier keys instead of unlocking anything new,
+// giving more practice before the harder stretch.
 export const KEY_STAGES = [
   ["f", "j"],
   ["d", "k"],
   ["s", "l"],
   ["a"],
+  [],
   ["g", "h"],
   ["e", "i"],
   ["r", "u"],
-  ["t", "y"],
   ["w", "o"],
   ["q", "p"],
+  [],
+  ["t", "y"],
   ["c", "v"],
-  ["b", "n"],
   ["m", "x"],
   ["z"],
+  [],
+  ["b", "n"],
 ];
 
 // Beyond the full lowercase alphabet, three more stages layer on capitals,
@@ -67,8 +76,8 @@ const WORD_BANK = Array.from(
 // by the adaptive lesson track, so a test result can seed `history` directly.
 export const TEST_LEVELS = [
   { id: "few-letters", label: "A few letters", stageIndex: 0 },
-  { id: "home-row", label: "Home row", stageIndex: 4 },
-  { id: "home-upper", label: "Home and upper row", stageIndex: 9 },
+  { id: "home-row", label: "Home row", stageIndex: 5 },
+  { id: "home-upper", label: "Home and upper row", stageIndex: 11 },
   { id: "all-letters", label: "All letters", stageIndex: KEY_STAGES.length - 1 },
   { id: "letters-capitals", label: "Letters with capitals", stageIndex: CAPITALS_STAGE },
   { id: "letters-numbers", label: "Letters and numbers", stageIndex: NUMBERS_STAGE },
