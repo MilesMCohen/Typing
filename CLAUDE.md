@@ -7,14 +7,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run dev` — start the Vite dev server (`--host`, binds all interfaces). Reads `PORT` from the environment if set, otherwise defaults to 5173.
 - `npm run build` — production build to `dist/`.
 - `npm run preview` — serve the built `dist/` output locally.
+- `npm run test` — run the Vitest unit test suite once (no watch mode).
 
-There is no test suite or linter configured in this project.
+There is no linter configured in this project.
 
 ## Architecture
 
-This is a static, vanilla-JS (no framework) Vite project deployed to GitHub Pages, with Firebase providing the only backend/data-persistence layer. There is no server of any kind — all Firebase calls happen directly from client-side JS in the browser.
+This is a React + Vite project (migrated from an initial vanilla-JS scaffold) deployed to GitHub Pages, with Firebase providing the only backend/data-persistence layer. There is no server of any kind — all Firebase calls happen directly from client-side JS in the browser.
 
-- **Entry point**: `index.html` loads `main.js` as an ES module. `main.js` currently contains a minimal cloud-save proof-of-concept UI (sign in with Google, save/load a test score) rather than actual game code — the game itself has not been built yet.
+- **Entry point**: `index.html` mounts `src/main.jsx`, which renders `src/App.jsx`. `App.jsx` is a screen router (`menu` / `game` / `results`, animated with Framer Motion's `AnimatePresence`) between `src/Menu.jsx`, `src/Game.jsx`, and `src/Results.jsx`.
+- **Game**: a progressive touch-typing game. `src/lessons.js` defines `LESSONS` (Home Row / Upper Row / Full Keyboard, each with a curated word list) and `randomWords()` to sample a round. `src/typing.js` holds the pure scoring logic (`getCharStatuses`, `computeAccuracy`, `computeWpm`) used by `Game.jsx` to render live per-character feedback and compute results — kept separate from the component specifically so it's unit-testable without rendering React. `src/typing.test.js` and `src/lessons.test.js` cover this logic; expect these to need updating as the game design changes.
+- **Testing**: Vitest is configured with no separate config file (it reads `vite.config.js` automatically). Tests are colocated as `*.test.js` next to the module they cover, and only exercise plain functions (no component rendering, no jsdom) so the suite stays fast — this is the primary way to verify game-logic changes, faster than manually exercising the UI.
 - **Firebase**: `src/firebase.js` initializes the Firebase app and exports `auth` (Firebase Auth) and `db` (Firestore). The `firebaseConfig` object is hardcoded there intentionally — Firebase's web config is not a secret (security comes from Firestore/Auth rules, not from hiding this object), so there is deliberately no `.env`/env-var indirection for it.
 - **Data model**: Firestore stores per-user data at `users/{uid}`, keyed by the Firebase Auth UID. `firestore.rules` restricts each document to `request.auth.uid == userId`. **Rules changes must be manually pasted into the Firebase console's Firestore Rules tab and published** — there is no CI/CD step or Firebase CLI deploy wired up for `firestore.rules`; the file in this repo is the source of truth but is not automatically applied.
 - **Auth**: Google sign-in via `signInWithPopup`. Any new domain the app is served from must be added to Firebase Auth's Authorized domains list in the console, or sign-in will fail there (`localhost` is allowed by default; `milesmcohen.github.io` has been added for production).

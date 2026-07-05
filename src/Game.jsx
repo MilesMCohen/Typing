@@ -1,5 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
+import { getCharStatuses, computeAccuracy, computeWpm } from "./typing.js";
+
+const STATUS_COLORS = {
+  correct: "#6f6",
+  incorrect: "#f66",
+  current: "#666",
+  pending: "#666",
+};
 
 export default function Game({ lesson, words, onComplete }) {
   const target = words.join(" ");
@@ -13,13 +21,9 @@ export default function Game({ lesson, words, onComplete }) {
 
   useEffect(() => {
     if (typed.length === target.length && typed.length > 0) {
-      const elapsedSeconds = Math.max((Date.now() - startTimeRef.current) / 1000, 0.1);
-      let correctCount = 0;
-      for (let i = 0; i < target.length; i++) {
-        if (typed[i] === target[i]) correctCount++;
-      }
-      const wpm = Math.round((target.length / 5) / (elapsedSeconds / 60));
-      const accuracy = Math.round((correctCount / target.length) * 100);
+      const elapsedSeconds = (Date.now() - startTimeRef.current) / 1000;
+      const wpm = computeWpm(target.length, elapsedSeconds);
+      const accuracy = computeAccuracy(target, typed);
       onComplete({ wpm, accuracy });
     }
   }, [typed, target, onComplete]);
@@ -44,20 +48,18 @@ export default function Game({ lesson, words, onComplete }) {
         style={{ fontSize: 32, fontFamily: "monospace", lineHeight: 1.5, letterSpacing: 1, textAlign: "center" }}
         onClick={() => inputRef.current?.focus()}
       >
-        {target.split("").map((char, i) => {
-          let color = "#666";
-          let background = "transparent";
-          if (i < typed.length) {
-            color = typed[i] === char ? "#6f6" : "#f66";
-          } else if (i === typed.length) {
-            background = "#333";
-          }
-          return (
-            <span key={i} style={{ color, background, borderRadius: 3 }}>
-              {char}
-            </span>
-          );
-        })}
+        {getCharStatuses(target, typed).map((status, i) => (
+          <span
+            key={i}
+            style={{
+              color: STATUS_COLORS[status],
+              background: status === "current" ? "#333" : "transparent",
+              borderRadius: 3,
+            }}
+          >
+            {target[i]}
+          </span>
+        ))}
       </div>
       <input
         ref={inputRef}
