@@ -5,21 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Typing</title>
   </head>
-  <body style="
-    font-family: sans-serif; background: #111; color: white;
-    display: flex; flex-direction: column; align-items: center;
-    justify-content: center; min-height: 100vh; gap: 16px; margin: 0;
-  ">
-    <div style="font-size: 28px; font-weight: bold;">Typing — Cloud Save Test</div>
-    <div id="user-info" style="color: #aaa;">Not signed in</div>
-    <button id="sign-in-btn" style="font-size: 18px; padding: 10px 24px; border-radius: 8px; border: none; cursor: pointer; background: cyan; color: black;">Sign in with Google</button>
-    <button id="sign-out-btn" style="font-size: 18px; padding: 10px 24px; border-radius: 8px; border: none; cursor: pointer; display: none;">Sign out</button>
-    <div style="display: flex; gap: 8px; align-items: center;">
-      <input id="score-input" type="number" placeholder="test score" style="font-size: 18px; padding: 8px; width: 120px;" />
-      <button id="save-btn" style="font-size: 18px; padding: 10px 24px; border-radius: 8px; border: none; cursor: pointer;">Save to cloud</button>
-      <button id="load-btn" style="font-size: 18px; padding: 10px 24px; border-radius: 8px; border: none; cursor: pointer;">Load from cloud</button>
-    </div>
-    <div id="status" style="color: #6f6; min-height: 24px;"></div>
-    <script type="module" src="./main.js"></script>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./src/main.jsx"></script>
   </body>
 </html>
