@@ -145,12 +145,12 @@ export default function App() {
         wpm: roundStats.wpm,
         accuracy: roundStats.accuracy,
         letterStats: roundStats.letterStats,
-        verdict: evaluateTestResult(roundStats.accuracy),
+        verdict: evaluateTestResult(roundStats.accuracy, roundStats.wpm, wpmTarget),
       });
       recordScore(roundStats.wpm);
       setScreen("test-results");
     },
-    [testLevel, persistHistory, recordScore]
+    [testLevel, wpmTarget, persistHistory, recordScore]
   );
 
   const testLevelIndex = testLevel ? TEST_LEVELS.findIndex((l) => l.id === testLevel.id) : -1;
@@ -219,6 +219,7 @@ export default function App() {
             level={testLevel}
             stats={testStats}
             verdict={testStats.verdict}
+            wpmTarget={wpmTarget}
             suggestedLevel={suggestedTestLevel}
             onRetestLevel={startTest}
             onDone={() => setScreen("menu")}

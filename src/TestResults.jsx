@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { letterBreakdown } from "./progression.js";
+import { letterBreakdown, minWpmForTarget } from "./progression.js";
 import SnowLeopard from "./SnowLeopard.jsx";
 
 const buttonStyle = {
@@ -18,8 +18,9 @@ function verdictMessage(verdict, suggestedLevel) {
   return suggestedLevel ? "🐢 This level is tough right now." : "🐢 Let's keep practicing at this level.";
 }
 
-export default function TestResults({ level, stats, verdict, suggestedLevel, onRetestLevel, onDone }) {
+export default function TestResults({ level, stats, verdict, wpmTarget, suggestedLevel, onRetestLevel, onDone }) {
   const letters = letterBreakdown(stats.letterStats);
+  const minWpm = wpmTarget ? minWpmForTarget(wpmTarget) : null;
 
   return (
     <motion.div
@@ -41,6 +42,7 @@ export default function TestResults({ level, stats, verdict, suggestedLevel, onR
         {stats.wpm} wpm
       </motion.div>
       <div style={{ fontSize: 20 }}>{stats.accuracy}% accuracy</div>
+      {minWpm != null && <div style={{ fontSize: 12, color: "#888" }}>Needed {minWpm}+ wpm to pass this level</div>}
 
       <div style={{ fontSize: 16, color: "#ccc", textAlign: "center", maxWidth: 320 }}>
         {verdictMessage(verdict, suggestedLevel)}

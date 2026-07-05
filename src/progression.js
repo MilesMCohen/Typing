@@ -275,10 +275,22 @@ export function buildTestRound(stageIndex, count = WORDS_PER_ROUND) {
   return generateRoundWords(stageIndex, [], count);
 }
 
+// The floor for "fast enough to pass" a test level is one grade below the
+// current speed goal — not the goal itself, since the test is checking
+// whether a level is a reasonable starting point, not whether she's already
+// hit her long-term target.
+export function minWpmForTarget(wpmTarget) {
+  const index = GRADE_WPM_TARGETS.findIndex((grade) => grade.wpm === wpmTarget);
+  if (index <= 0) return 0;
+  return GRADE_WPM_TARGETS[index - 1].wpm;
+}
+
 // Mirrors decideNextStage's own accuracy thresholds so a one-off test verdict
-// stays consistent with what would happen in ongoing adaptive play.
-export function evaluateTestResult(accuracy) {
-  if (accuracy >= ADVANCE_ACCURACY) return "increase";
-  if (accuracy < REGRESS_ACCURACY) return "decrease";
+// stays consistent with what would happen in ongoing adaptive play, plus a
+// wpm floor so a level isn't judged a good fit purely on accurate-but-slow typing.
+export function evaluateTestResult(accuracy, wpm, wpmTarget = DEFAULT_WPM_TARGET) {
+  const minWpm = minWpmForTarget(wpmTarget);
+  if (accuracy < REGRESS_ACCURACY || wpm < minWpm) return "decrease";
+  if (accuracy >= ADVANCE_ACCURACY && wpm >= wpmTarget) return "increase";
   return "fit";
 }

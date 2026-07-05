@@ -16,6 +16,7 @@ import {
   generateRoundWords,
   getLetterStats,
   letterBreakdown,
+  minWpmForTarget,
   stageIncludesCapitals,
   stageIncludesNumbers,
   stageIncludesSymbols,
@@ -247,17 +248,39 @@ describe("buildTestRound", () => {
   });
 });
 
+describe("minWpmForTarget", () => {
+  it("uses the wpm of the grade one below the target", () => {
+    expect(minWpmForTarget(20)).toBe(12); // 4th grade target -> 3rd grade floor
+  });
+
+  it("has no floor below the lowest grade", () => {
+    expect(minWpmForTarget(5)).toBe(0); // 1st grade has no grade below it
+  });
+
+  it("has no floor for an unrecognized target", () => {
+    expect(minWpmForTarget(999)).toBe(0);
+  });
+});
+
 describe("evaluateTestResult", () => {
-  it("suggests increasing the level for high accuracy", () => {
-    expect(evaluateTestResult(97)).toBe("increase");
+  it("suggests increasing the level for high accuracy and speed at or above the target", () => {
+    expect(evaluateTestResult(97, 25, 20)).toBe("increase");
   });
 
-  it("suggests decreasing the level for low accuracy", () => {
-    expect(evaluateTestResult(60)).toBe("decrease");
+  it("does not suggest increasing on accuracy alone if speed is below the target", () => {
+    expect(evaluateTestResult(97, 15, 20)).toBe("fit");
   });
 
-  it("reports a good fit for middling accuracy", () => {
-    expect(evaluateTestResult(85)).toBe("fit");
+  it("suggests decreasing the level for low accuracy even with good speed", () => {
+    expect(evaluateTestResult(60, 25, 20)).toBe("decrease");
+  });
+
+  it("suggests decreasing the level when speed is below the one-grade-down floor, even with good accuracy", () => {
+    expect(evaluateTestResult(90, 5, 20)).toBe("decrease");
+  });
+
+  it("reports a good fit for middling accuracy and speed above the floor but below the target", () => {
+    expect(evaluateTestResult(85, 15, 20)).toBe("fit");
   });
 });
 
