@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { LESSONS } from "./lessons.js";
+import SnowLeopard from "./SnowLeopard.jsx";
 
 const buttonStyle = {
   fontSize: 18,
@@ -19,6 +20,7 @@ export default function Menu({ user, bestScore, status, onSignIn, onSignOut, onS
       transition={{ duration: 0.3 }}
     >
       <div style={{ fontSize: 32, fontWeight: "bold" }}>Typing Adventure</div>
+      <SnowLeopard progress={0} />
 
       <div style={{ color: "#aaa" }}>
         {user ? `Signed in as ${user.displayName ?? user.uid}` : "Not signed in"}

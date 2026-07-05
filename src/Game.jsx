@@ -1,6 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { getCharStatuses, computeAccuracy, computeWpm } from "./typing.js";
+import { WORDS_PER_LINE } from "./lessons.js";
+import SnowLeopard from "./SnowLeopard.jsx";
 
 const STATUS_COLORS = {
   correct: "#6f6",
@@ -14,6 +16,25 @@ export default function Game({ lesson, words, onComplete }) {
   const [typed, setTyped] = useState("");
   const startTimeRef = useRef(null);
   const inputRef = useRef(null);
+
+  // Split the flat target string into display rows of WORDS_PER_LINE words
+  // each, without altering the underlying string used for scoring.
+  const lines = useMemo(() => {
+    let offset = 0;
+    const rows = [];
+    for (let i = 0; i < words.length; i += WORDS_PER_LINE) {
+      const group = words.slice(i, i + WORDS_PER_LINE);
+      const isLastGroup = i + WORDS_PER_LINE >= words.length;
+      const start = offset;
+      let end = start + group.join(" ").length;
+      if (!isLastGroup) end += 1; // absorb the separator space before the next row
+      rows.push({ start, end });
+      offset = end;
+    }
+    return rows;
+  }, [words]);
+
+  const progress = target.length > 0 ? typed.length / target.length : 0;
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -44,22 +65,33 @@ export default function Game({ lesson, words, onComplete }) {
       transition={{ duration: 0.3 }}
     >
       <div style={{ fontSize: 20, color: "#aaa" }}>{lesson.label}</div>
+      <SnowLeopard progress={progress} />
       <div
-        style={{ fontSize: 32, fontFamily: "monospace", lineHeight: 1.5, letterSpacing: 1, textAlign: "center" }}
+        style={{ fontSize: 28, fontFamily: "monospace", lineHeight: 1.6, letterSpacing: 1, textAlign: "center" }}
         onClick={() => inputRef.current?.focus()}
       >
-        {getCharStatuses(target, typed).map((status, i) => (
-          <span
-            key={i}
-            style={{
-              color: STATUS_COLORS[status],
-              background: status === "current" ? "#333" : "transparent",
-              borderRadius: 3,
-            }}
-          >
-            {target[i]}
-          </span>
-        ))}
+        {(() => {
+          const statuses = getCharStatuses(target, typed);
+          return lines.map((line, li) => (
+            <div key={li}>
+              {statuses.slice(line.start, line.end).map((status, i) => {
+                const idx = line.start + i;
+                return (
+                  <span
+                    key={idx}
+                    style={{
+                      color: STATUS_COLORS[status],
+                      background: status === "current" ? "#333" : "transparent",
+                      borderRadius: 3,
+                    }}
+                  >
+                    {target[idx]}
+                  </span>
+                );
+              })}
+            </div>
+          ));
+        })()}
       </div>
       <input
         ref={inputRef}

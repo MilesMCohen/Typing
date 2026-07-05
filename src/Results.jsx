@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import SnowLeopard from "./SnowLeopard.jsx";
 
 const buttonStyle = {
   fontSize: 18,
@@ -18,6 +19,7 @@ export default function Results({ lesson, stats, onPlayAgain, onBackToMenu }) {
       transition={{ duration: 0.3, type: "spring" }}
     >
       <div style={{ fontSize: 28, fontWeight: "bold" }}>Nice work! 🎉</div>
+      <SnowLeopard progress={1} />
       <div style={{ color: "#aaa" }}>{lesson.label}</div>
       <motion.div
         style={{ fontSize: 56, fontWeight: "bold", color: "#6f6" }}
