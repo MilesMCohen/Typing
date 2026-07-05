@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { auth, db } from "./firebase.js";
 import { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
 import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
-import { WORDS_PER_ROUND, randomWords } from "./lessons.js";
+import { buildLessonPlan } from "./progression.js";
 import Menu from "./Menu.jsx";
 import Game from "./Game.jsx";
 import Results from "./Results.jsx";
@@ -27,21 +27,26 @@ export default function App() {
   const [bestScore, setBestScore] = useState(null);
   const [status, setStatus] = useState("");
   const [screen, setScreen] = useState("menu");
-  const [lesson, setLesson] = useState(null);
-  const [roundWords, setRoundWords] = useState([]);
-  const [stats, setStats] = useState(null);
+  const [history, setHistory] = useState([]);
+  const [lessonPlan, setLessonPlan] = useState(null);
+  const [resultsData, setResultsData] = useState(null);
 
   useEffect(() => onAuthStateChanged(auth, setUser), []);
 
   useEffect(() => {
     if (!user) {
       setBestScore(null);
+      setHistory([]);
       return;
     }
     getDoc(doc(db, "users", user.uid)).then((snap) => {
-      setBestScore(snap.exists() ? snap.data().bestScore ?? null : null);
+      const data = snap.exists() ? snap.data() : null;
+      setBestScore(data?.bestScore ?? null);
+      setHistory(data?.progression?.history ?? []);
     });
   }, [user]);
+
+  const nextPlan = useMemo(() => buildLessonPlan(history), [history]);
 
   const handleSignIn = async () => {
     try {
@@ -64,19 +69,37 @@ export default function App() {
     [user, bestScore]
   );
 
-  const startLesson = (selectedLesson) => {
-    setLesson(selectedLesson);
-    setRoundWords(randomWords(selectedLesson.words, WORDS_PER_ROUND));
+  const startLesson = () => {
+    setLessonPlan(nextPlan);
     setScreen("game");
   };
 
   const handleComplete = useCallback(
     (roundStats) => {
-      setStats(roundStats);
+      const entry = {
+        ts: Date.now(),
+        stageIndex: lessonPlan.stageIndex,
+        accuracy: roundStats.accuracy,
+        wpm: roundStats.wpm,
+        letterStats: roundStats.letterStats,
+      };
+      const newHistory = [...history, entry].slice(-5);
+      setHistory(newHistory);
+      setResultsData({
+        wpm: roundStats.wpm,
+        accuracy: roundStats.accuracy,
+        letterStats: roundStats.letterStats,
+        direction: lessonPlan.direction,
+        unlockedLetters: lessonPlan.unlockedLetters,
+        weakLetters: lessonPlan.weakLetters,
+      });
       recordScore(roundStats.wpm);
+      if (user) {
+        setDoc(doc(db, "users", user.uid), { progression: { history: newHistory } }, { merge: true });
+      }
       setScreen("results");
     },
-    [recordScore]
+    [lessonPlan, history, user, recordScore]
   );
 
   return (
@@ -88,20 +111,21 @@ export default function App() {
             user={user}
             bestScore={bestScore}
             status={status}
+            plan={nextPlan}
             onSignIn={handleSignIn}
             onSignOut={() => signOut(auth)}
-            onSelectLesson={startLesson}
+            onStart={startLesson}
           />
         )}
         {screen === "game" && (
-          <Game key="game" lesson={lesson} words={roundWords} onComplete={handleComplete} />
+          <Game key="game" lesson={lessonPlan} words={lessonPlan.words} onComplete={handleComplete} />
         )}
         {screen === "results" && (
           <Results
             key="results"
-            lesson={lesson}
-            stats={stats}
-            onPlayAgain={() => startLesson(lesson)}
+            lesson={lessonPlan}
+            stats={resultsData}
+            onPlayAgain={startLesson}
             onBackToMenu={() => setScreen("menu")}
           />
         )}

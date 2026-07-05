@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { getCharStatuses, computeAccuracy, computeWpm } from "./typing.js";
+import { getLetterStats } from "./progression.js";
 import { WORDS_PER_LINE, splitIntoLines } from "./lessons.js";
 import SnowLeopard from "./SnowLeopard.jsx";
 
@@ -30,7 +31,8 @@ export default function Game({ lesson, words, onComplete }) {
       const elapsedSeconds = (Date.now() - startTimeRef.current) / 1000;
       const wpm = computeWpm(target.length, elapsedSeconds);
       const accuracy = computeAccuracy(target, typed);
-      onComplete({ wpm, accuracy });
+      const letterStats = getLetterStats(target, typed);
+      onComplete({ wpm, accuracy, letterStats });
     }
   }, [typed, target, onComplete]);
 

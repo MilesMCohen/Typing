@@ -1,5 +1,4 @@
 import { motion } from "framer-motion";
-import { LESSONS } from "./lessons.js";
 import SnowLeopard from "./SnowLeopard.jsx";
 
 const buttonStyle = {
@@ -10,7 +9,7 @@ const buttonStyle = {
   cursor: "pointer",
 };
 
-export default function Menu({ user, bestScore, status, onSignIn, onSignOut, onSelectLesson }) {
+export default function Menu({ user, bestScore, status, plan, onSignIn, onSignOut, onStart }) {
   return (
     <motion.div
       style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}
@@ -36,22 +35,21 @@ export default function Menu({ user, bestScore, status, onSignIn, onSignOut, onS
         </button>
       )}
       {status && <div style={{ color: "#6f6", minHeight: 24 }}>{status}</div>}
+      {!user && (
+        <div style={{ color: "#888", fontSize: 13, maxWidth: 260, textAlign: "center" }}>
+          Sign in to save your progress between visits.
+        </div>
+      )}
 
-      <div style={{ fontSize: 20, marginTop: 16 }}>Choose a lesson:</div>
-      <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>
-        {LESSONS.map((lesson) => (
-          <motion.button
-            key={lesson.id}
-            style={{ ...buttonStyle, background: "#eee", display: "flex", flexDirection: "column", gap: 4, minWidth: 160 }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => onSelectLesson(lesson)}
-          >
-            <span style={{ fontWeight: "bold" }}>{lesson.label}</span>
-            <span style={{ fontSize: 13, color: "#555" }}>{lesson.keysHint}</span>
-          </motion.button>
-        ))}
-      </div>
+      <motion.button
+        style={{ ...buttonStyle, background: "cyan", color: "black", display: "flex", flexDirection: "column", gap: 4, minWidth: 200, marginTop: 8 }}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={onStart}
+      >
+        <span style={{ fontWeight: "bold" }}>Start {plan.label}</span>
+        <span style={{ fontSize: 13, color: "#333" }}>keys: {plan.keysHint}</span>
+      </motion.button>
     </motion.div>
   );
 }
