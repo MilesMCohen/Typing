@@ -35,7 +35,7 @@ export const LESSONS = [
   },
 ];
 
-export const WORDS_PER_LINE = 8;
+export const WORDS_PER_LINE = 6;
 export const LINES_PER_ROUND = 3;
 export const WORDS_PER_ROUND = WORDS_PER_LINE * LINES_PER_ROUND;
 

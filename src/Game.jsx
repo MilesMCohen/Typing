@@ -8,9 +8,15 @@ import SnowLeopard from "./SnowLeopard.jsx";
 const STATUS_COLORS = {
   correct: "#6f6",
   incorrect: "#f66",
-  current: "#666",
-  pending: "#666",
 };
+
+// A lone space is both the leading and trailing whitespace of its own flex-item
+// span, so browsers collapse it to zero width/height — which lets the echo span
+// below it ride up into the sample row's line. A non-breaking space renders
+// identically but isn't subject to that collapsing.
+function displayChar(char) {
+  return char === " " ? " " : char;
+}
 
 export default function Game({ lesson, words, onComplete, onExit }) {
   const target = words.join(" ");
@@ -49,7 +55,7 @@ export default function Game({ lesson, words, onComplete, onExit }) {
 
   return (
     <motion.div
-      style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 24, width: "100%", maxWidth: 700, padding: "0 16px" }}
+      style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 24, width: "100%", maxWidth: 900, padding: "0 16px" }}
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -12 }}
@@ -66,30 +72,38 @@ export default function Game({ lesson, words, onComplete, onExit }) {
       </div>
       <SnowLeopard progress={progress} />
       <div
-        style={{ fontSize: 28, fontFamily: "monospace", lineHeight: 1.6, letterSpacing: 1, textAlign: "center" }}
+        style={{ fontSize: 28, fontFamily: "monospace", letterSpacing: 1, textAlign: "center", display: "flex", flexDirection: "column", gap: 32 }}
         onClick={() => inputRef.current?.focus()}
       >
         {(() => {
           const statuses = getCharStatuses(target, typed);
-          return lines.map((line, li) => (
-            <div key={li}>
-              {statuses.slice(line.start, line.end).map((status, i) => {
-                const idx = line.start + i;
-                return (
-                  <span
-                    key={idx}
-                    style={{
-                      color: STATUS_COLORS[status],
-                      background: status === "current" ? "#333" : "transparent",
-                      borderRadius: 3,
-                    }}
-                  >
-                    {target[idx]}
-                  </span>
-                );
-              })}
-            </div>
-          ));
+          return lines.map((line, li) => {
+            const indices = Array.from({ length: line.end - line.start }, (_, i) => line.start + i);
+            return (
+              <div key={li} style={{ display: "flex", justifyContent: "center", whiteSpace: "nowrap" }}>
+                {indices.map((idx) => {
+                  const status = statuses[idx];
+                  const isTyped = status === "correct" || status === "incorrect";
+                  return (
+                    <div key={idx} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                      <span
+                        style={{
+                          color: STATUS_COLORS[status] ?? "#666",
+                          background: status === "current" ? "#333" : "transparent",
+                          borderRadius: 3,
+                        }}
+                      >
+                        {displayChar(target[idx])}
+                      </span>
+                      <span style={{ color: isTyped ? "#fff" : "transparent" }}>
+                        {displayChar(isTyped ? typed[idx] : target[idx])}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          });
         })()}
       </div>
       <input
@@ -98,8 +112,7 @@ export default function Game({ lesson, words, onComplete, onExit }) {
         onChange={handleChange}
         onKeyDown={handleKeyDown}
         autoFocus
-        style={{ fontSize: 20, padding: 12, width: "100%", borderRadius: 8, border: "2px solid #444", background: "#1a1a1a", color: "white" }}
-        placeholder="Start typing here..."
+        style={{ position: "absolute", opacity: 0, width: 1, height: 1, pointerEvents: "none" }}
       />
     </motion.div>
   );
