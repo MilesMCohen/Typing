@@ -10,15 +10,15 @@ const buttonStyle = {
   cursor: "pointer",
 };
 
-const DIRECTION_MESSAGES = {
-  start: "Let's get started!",
-  advance: "🎉 Great job — leveling up next time!",
-  hold: "💪 Keep practicing these letters",
-  regress: "🐢 Let's slow down and review",
-  mastered: "🏆 You've mastered the full keyboard!",
-};
+function verdictMessage(verdict, suggestedLevel) {
+  if (verdict === "fit") return "✅ This level looks like a good fit!";
+  if (verdict === "increase") {
+    return suggestedLevel ? "🚀 You're doing great here — this level looks too easy!" : "🏆 You've mastered every level!";
+  }
+  return suggestedLevel ? "🐢 This level is tough right now." : "🐢 Let's keep practicing at this level.";
+}
 
-export default function Results({ lesson, stats, onPlayAgain, onBackToMenu }) {
+export default function TestResults({ level, stats, verdict, suggestedLevel, onRetestLevel, onDone }) {
   const letters = letterBreakdown(stats.letterStats);
 
   return (
@@ -29,9 +29,9 @@ export default function Results({ lesson, stats, onPlayAgain, onBackToMenu }) {
       exit={{ opacity: 0, scale: 0.9 }}
       transition={{ duration: 0.3, type: "spring" }}
     >
-      <div style={{ fontSize: 28, fontWeight: "bold" }}>Nice work! 🎉</div>
+      <div style={{ fontSize: 28, fontWeight: "bold" }}>Test Results</div>
       <SnowLeopard progress={1} />
-      <div style={{ color: "#aaa" }}>{lesson.label}</div>
+      <div style={{ color: "#aaa" }}>{level.label}</div>
       <motion.div
         style={{ fontSize: 56, fontWeight: "bold", color: "#6f6" }}
         initial={{ scale: 0 }}
@@ -42,10 +42,15 @@ export default function Results({ lesson, stats, onPlayAgain, onBackToMenu }) {
       </motion.div>
       <div style={{ fontSize: 20 }}>{stats.accuracy}% accuracy</div>
 
-      <div style={{ fontSize: 16, color: "#ccc" }}>{DIRECTION_MESSAGES[stats.direction]}</div>
-      {stats.weakLetters?.length > 0 && (
-        <div style={{ fontSize: 14, color: "#f96" }}>Extra practice: {stats.weakLetters.join(", ")}</div>
-      )}
+      <div style={{ fontSize: 16, color: "#ccc", textAlign: "center", maxWidth: 320 }}>
+        {verdictMessage(verdict, suggestedLevel)}
+        {verdict !== "fit" && suggestedLevel && (
+          <>
+            {" "}
+            Try <strong>{suggestedLevel.label}</strong> instead.
+          </>
+        )}
+      </div>
 
       {letters.length > 0 && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "center", maxWidth: 400 }}>
@@ -69,11 +74,13 @@ export default function Results({ lesson, stats, onPlayAgain, onBackToMenu }) {
       )}
 
       <div style={{ display: "flex", gap: 12, marginTop: 16 }}>
-        <button style={{ ...buttonStyle, background: "cyan", color: "black" }} onClick={onPlayAgain}>
-          Next Lesson
-        </button>
-        <button style={{ ...buttonStyle, background: "#eee" }} onClick={onBackToMenu}>
-          Back to Menu
+        {verdict !== "fit" && suggestedLevel && (
+          <button style={{ ...buttonStyle, background: "cyan", color: "black" }} onClick={() => onRetestLevel(suggestedLevel)}>
+            Retest at {suggestedLevel.label}
+          </button>
+        )}
+        <button style={{ ...buttonStyle, background: "#eee" }} onClick={onDone}>
+          Done
         </button>
       </div>
     </motion.div>

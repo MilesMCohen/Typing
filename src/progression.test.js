@@ -1,11 +1,23 @@
 import { describe, expect, it } from "vitest";
 import {
+  CAPITALS_STAGE,
   KEY_STAGES,
+  MAX_STAGE,
+  NUMBERS_STAGE,
+  SYMBOLS_STAGE,
+  TEST_LEVELS,
   aggregateHistory,
   buildLessonPlan,
+  buildTestRound,
   decideNextStage,
+  evaluateTestResult,
   generateRoundWords,
   getLetterStats,
+  letterBreakdown,
+  stageIncludesCapitals,
+  stageIncludesNumbers,
+  stageIncludesSymbols,
+  stageKeysHint,
   unlockedLettersForStage,
   weakLetters,
 } from "./progression.js";
@@ -36,6 +48,23 @@ describe("getLetterStats", () => {
       a: { attempts: 2, correct: 2 },
       b: { attempts: 2, correct: 1 },
     });
+  });
+});
+
+describe("letterBreakdown", () => {
+  it("computes rounded per-letter accuracy, sorted worst first", () => {
+    const result = letterBreakdown({
+      a: { attempts: 4, correct: 4 },
+      b: { attempts: 4, correct: 1 },
+    });
+    expect(result).toEqual([
+      { letter: "b", attempts: 4, accuracy: 25 },
+      { letter: "a", attempts: 4, accuracy: 100 },
+    ]);
+  });
+
+  it("returns an empty list for missing stats", () => {
+    expect(letterBreakdown(undefined)).toEqual([]);
   });
 });
 
@@ -95,10 +124,15 @@ describe("decideNextStage", () => {
     expect(decideNextStage(history)).toEqual({ stageIndex: 3, direction: "advance" });
   });
 
-  it("reports mastered instead of advancing past the last stage", () => {
-    const lastStage = KEY_STAGES.length - 1;
-    const history = [{ stageIndex: lastStage, accuracy: 99, wpm: 30 }];
-    expect(decideNextStage(history)).toEqual({ stageIndex: lastStage, direction: "mastered" });
+  it("advances from the full alphabet into the capitals stage", () => {
+    const lastLetterStage = KEY_STAGES.length - 1;
+    const history = [{ stageIndex: lastLetterStage, accuracy: 99, wpm: 30 }];
+    expect(decideNextStage(history)).toEqual({ stageIndex: CAPITALS_STAGE, direction: "advance" });
+  });
+
+  it("reports mastered instead of advancing past the final stage", () => {
+    const history = [{ stageIndex: MAX_STAGE, accuracy: 99, wpm: 30 }];
+    expect(decideNextStage(history)).toEqual({ stageIndex: MAX_STAGE, direction: "mastered" });
   });
 
   it("holds the stage steady for middling accuracy", () => {
@@ -127,19 +161,86 @@ describe("decideNextStage", () => {
 
 describe("generateRoundWords", () => {
   it("only uses letters from the unlocked set, even in early sparse stages", () => {
-    const unlocked = KEY_STAGES[0];
-    const unlockedSet = new Set(unlocked);
-    const words = generateRoundWords(unlocked, [], 24);
+    const unlockedSet = new Set(KEY_STAGES[0]);
+    const words = generateRoundWords(0, [], 24);
     expect(words).toHaveLength(24);
     for (const word of words) {
-      for (const ch of word) expect(unlockedSet.has(ch)).toBe(true);
+      for (const ch of word.toLowerCase()) expect(unlockedSet.has(ch)).toBe(true);
     }
   });
 
   it("returns the requested count once the full alphabet is unlocked", () => {
-    const unlocked = KEY_STAGES.flat();
-    const words = generateRoundWords(unlocked, [], 24);
+    const words = generateRoundWords(KEY_STAGES.length - 1, [], 24);
     expect(words).toHaveLength(24);
+  });
+
+  it("includes some capitalized words at the capitals stage", () => {
+    const words = generateRoundWords(CAPITALS_STAGE, [], 40);
+    expect(words.some((w) => /^[A-Z]/.test(w))).toBe(true);
+  });
+
+  it("includes some digit tokens at the numbers stage", () => {
+    const words = generateRoundWords(NUMBERS_STAGE, [], 40);
+    expect(words.some((w) => /\d/.test(w))).toBe(true);
+  });
+
+  it("includes some symbol characters at the symbols stage", () => {
+    const words = generateRoundWords(SYMBOLS_STAGE, [], 40);
+    expect(words.some((w) => /[.,!?':;-]/.test(w))).toBe(true);
+  });
+});
+
+describe("stage content flags", () => {
+  it("only turn on at or after their stage", () => {
+    expect(stageIncludesCapitals(CAPITALS_STAGE - 1)).toBe(false);
+    expect(stageIncludesCapitals(CAPITALS_STAGE)).toBe(true);
+    expect(stageIncludesNumbers(NUMBERS_STAGE - 1)).toBe(false);
+    expect(stageIncludesNumbers(NUMBERS_STAGE)).toBe(true);
+    expect(stageIncludesSymbols(SYMBOLS_STAGE - 1)).toBe(false);
+    expect(stageIncludesSymbols(SYMBOLS_STAGE)).toBe(true);
+  });
+});
+
+describe("stageKeysHint", () => {
+  it("appends ABC/123/!?. hints once those stages unlock", () => {
+    expect(stageKeysHint(0)).toBe("f j");
+    expect(stageKeysHint(SYMBOLS_STAGE)).toContain("ABC");
+    expect(stageKeysHint(SYMBOLS_STAGE)).toContain("123");
+    expect(stageKeysHint(SYMBOLS_STAGE)).toContain("!?.");
+  });
+});
+
+describe("TEST_LEVELS", () => {
+  it("is ordered by increasing stageIndex", () => {
+    for (let i = 1; i < TEST_LEVELS.length; i++) {
+      expect(TEST_LEVELS[i].stageIndex).toBeGreaterThan(TEST_LEVELS[i - 1].stageIndex);
+    }
+  });
+
+  it("covers the full stage range from a few letters to all keys", () => {
+    expect(TEST_LEVELS[0].stageIndex).toBe(0);
+    expect(TEST_LEVELS[TEST_LEVELS.length - 1].stageIndex).toBe(MAX_STAGE);
+  });
+});
+
+describe("buildTestRound", () => {
+  it("generates a full round of words for the given stage", () => {
+    const words = buildTestRound(TEST_LEVELS[0].stageIndex, 24);
+    expect(words).toHaveLength(24);
+  });
+});
+
+describe("evaluateTestResult", () => {
+  it("suggests increasing the level for high accuracy", () => {
+    expect(evaluateTestResult(97)).toBe("increase");
+  });
+
+  it("suggests decreasing the level for low accuracy", () => {
+    expect(evaluateTestResult(60)).toBe("decrease");
+  });
+
+  it("reports a good fit for middling accuracy", () => {
+    expect(evaluateTestResult(85)).toBe("fit");
   });
 });
 

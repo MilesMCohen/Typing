@@ -12,7 +12,7 @@ const STATUS_COLORS = {
   pending: "#666",
 };
 
-export default function Game({ lesson, words, onComplete }) {
+export default function Game({ lesson, words, onComplete, onExit }) {
   const target = words.join(" ");
   const [typed, setTyped] = useState("");
   const startTimeRef = useRef(null);
@@ -43,6 +43,10 @@ export default function Game({ lesson, words, onComplete }) {
     setTyped(e.target.value.slice(0, target.length));
   };
 
+  const handleKeyDown = (e) => {
+    if (e.key === "Escape") onExit();
+  };
+
   return (
     <motion.div
       style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 24, width: "100%", maxWidth: 700, padding: "0 16px" }}
@@ -51,7 +55,15 @@ export default function Game({ lesson, words, onComplete }) {
       exit={{ opacity: 0, y: -12 }}
       transition={{ duration: 0.3 }}
     >
-      <div style={{ fontSize: 20, color: "#aaa" }}>{lesson.label}</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ fontSize: 20, color: "#aaa" }}>{lesson.label}</div>
+        <button
+          onClick={onExit}
+          style={{ fontSize: 13, padding: "4px 10px", borderRadius: 6, border: "1px solid #444", background: "transparent", color: "#888", cursor: "pointer" }}
+        >
+          Exit (Esc)
+        </button>
+      </div>
       <SnowLeopard progress={progress} />
       <div
         style={{ fontSize: 28, fontFamily: "monospace", lineHeight: 1.6, letterSpacing: 1, textAlign: "center" }}
@@ -84,6 +96,7 @@ export default function Game({ lesson, words, onComplete }) {
         ref={inputRef}
         value={typed}
         onChange={handleChange}
+        onKeyDown={handleKeyDown}
         autoFocus
         style={{ fontSize: 20, padding: 12, width: "100%", borderRadius: 8, border: "2px solid #444", background: "#1a1a1a", color: "white" }}
         placeholder="Start typing here..."

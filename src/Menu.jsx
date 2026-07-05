@@ -9,7 +9,7 @@ const buttonStyle = {
   cursor: "pointer",
 };
 
-export default function Menu({ user, bestScore, status, plan, onSignIn, onSignOut, onStart }) {
+export default function Menu({ user, bestScore, status, plan, onSignIn, onSignOut, onStart, onOpenTest }) {
   return (
     <motion.div
       style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}
@@ -50,6 +50,10 @@ export default function Menu({ user, bestScore, status, plan, onSignIn, onSignOu
         <span style={{ fontWeight: "bold" }}>Start {plan.label}</span>
         <span style={{ fontSize: 13, color: "#333" }}>keys: {plan.keysHint}</span>
       </motion.button>
+
+      <button style={{ ...buttonStyle, background: "transparent", color: "#aaa", border: "1px solid #444", fontSize: 14 }} onClick={onOpenTest}>
+        Take a Placement Test
+      </button>
     </motion.div>
   );
 }
