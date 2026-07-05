@@ -1,0 +1,2 @@
+# Copy to .envrc, fill in your MilesMCohen personal access token, then run `direnv allow`.
+export GH_TOKEN=
