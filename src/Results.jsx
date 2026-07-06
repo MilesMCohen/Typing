@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { groupBreakdown } from "./progression.js";
+import { leopardFellShort } from "./typing.js";
 import SnowLeopard from "./SnowLeopard.jsx";
 
 const buttonStyle = {
@@ -23,6 +24,7 @@ export default function Results({ lesson, stats, wpmTarget, onPlayAgain, onBackT
   const groups = groupBreakdown(stats.letterStats);
   const goalPercent = wpmTarget ? Math.min(100, Math.round((stats.wpm / wpmTarget) * 100)) : null;
   const leopardProgress = wpmTarget ? Math.min(1, stats.wpm / wpmTarget) : 1;
+  const fell = leopardFellShort(leopardProgress, stats.accuracy);
 
   return (
     <motion.div
@@ -33,7 +35,7 @@ export default function Results({ lesson, stats, wpmTarget, onPlayAgain, onBackT
       transition={{ duration: 0.3, type: "spring" }}
     >
       <div style={{ fontSize: 28, fontWeight: "bold" }}>Nice work! 🎉</div>
-      <SnowLeopard progress={leopardProgress} preyProgress={1} />
+      <SnowLeopard progress={leopardProgress} preyProgress={1} fell={fell} />
       <div style={{ color: "#aaa" }}>{lesson.label}</div>
       <motion.div
         style={{ fontSize: 56, fontWeight: "bold", color: "#6f6" }}

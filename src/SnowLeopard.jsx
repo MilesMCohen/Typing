@@ -110,10 +110,11 @@ function buildPrey() {
 // React re-renders on a keystroke — see extrapolateTypedLength for why.
 // Otherwise (Menu/Results/TestResults, showing a fixed before/after state)
 // the static `progress`/`preyProgress` props are used directly.
-export default function SnowLeopard({ progress = 0, preyProgress = 0, typedLength, targetLength, wpmTarget, startedAt = null, lastKeystrokeAt = null }) {
+export default function SnowLeopard({ progress = 0, preyProgress = 0, fell = false, typedLength, targetLength, wpmTarget, startedAt = null, lastKeystrokeAt = null }) {
   const hostRef = useRef(null);
   const progressRef = useRef(progress);
   const preyProgressRef = useRef(preyProgress);
+  const fellRef = useRef(fell);
   const liveRef = useRef({ typedLength, targetLength, wpmTarget, startedAt, lastKeystrokeAt });
 
   useEffect(() => {
@@ -123,6 +124,10 @@ export default function SnowLeopard({ progress = 0, preyProgress = 0, typedLengt
   useEffect(() => {
     preyProgressRef.current = preyProgress;
   }, [preyProgress]);
+
+  useEffect(() => {
+    fellRef.current = fell;
+  }, [fell]);
 
   useEffect(() => {
     liveRef.current = { typedLength, targetLength, wpmTarget, startedAt, lastKeystrokeAt };
@@ -214,6 +219,7 @@ export default function SnowLeopard({ progress = 0, preyProgress = 0, typedLengt
         let displayed = progressRef.current;
         let displayedPrey = preyProgressRef.current;
         let elapsed = 0;
+        let peakReachedAt = null;
 
         const tick = (ticker) => {
           const dt = ticker.deltaTime;
@@ -245,17 +251,31 @@ export default function SnowLeopard({ progress = 0, preyProgress = 0, typedLengt
           midLayer.x = ANCHOR_X + (cameraX - ANCHOR_X) * 0.4;
           farLayer.x = ANCHOR_X + (cameraX - ANCHOR_X) * 0.15;
 
-          leopard.position.set(worldX, y - 12);
           const reachedPeak = displayed >= 1;
-          bob.y = reachedPeak
-            ? Math.sin(elapsed * 10) * 3
-            : Math.sin(elapsed * 6) * 2;
-          bob.scale.set(reachedPeak ? 1 + Math.abs(Math.sin(elapsed * 10)) * 0.15 : 1);
-          tailPivot.rotation = Math.sin(elapsed * 5) * 0.35;
+          if (reachedPeak && peakReachedAt === null) peakReachedAt = elapsed;
+          if (!reachedPeak) peakReachedAt = null;
+          const falling = reachedPeak && fellRef.current;
+          const caught = reachedPeak && !fellRef.current;
+
+          if (falling) {
+            const fallElapsed = elapsed - peakReachedAt;
+            leopard.position.set(worldX, y - 12 + 20 * fallElapsed * fallElapsed);
+            bob.rotation = fallElapsed * 4;
+            bob.y = 0;
+            bob.scale.set(1);
+          } else {
+            leopard.position.set(worldX, y - 12);
+            bob.rotation = 0;
+            bob.y = reachedPeak
+              ? Math.sin(elapsed * 10) * 3
+              : Math.sin(elapsed * 6) * 2;
+            bob.scale.set(reachedPeak ? 1 + Math.abs(Math.sin(elapsed * 10)) * 0.15 : 1);
+          }
+          tailPivot.rotation = falling ? 0 : Math.sin(elapsed * 5) * 0.35;
 
           const { worldX: preyWorldX, y: preyY } = leopardPosition(PREY_CRAGS, displayedPrey);
           prey.position.set(preyWorldX, preyY - 10);
-          prey.visible = !reachedPeak;
+          prey.visible = !caught;
           preyBob.y = Math.sin(elapsed * 7) * 2.5;
 
           for (const flake of snowflakes) {

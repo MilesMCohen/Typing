@@ -64,3 +64,12 @@ export function extrapolateTypedLength(knownTypedLength, knownElapsedSeconds, t,
   const guess = knownTypedLength + rate * Math.max(0, t - knownElapsedSeconds);
   return Math.min(targetLength, guess);
 }
+
+const LANDING_ACCURACY = 90;
+
+// A round can be typed fast enough to catch the prey (leopardProgress hits
+// 1) and still be too sloppy to count as a clean catch — this is what shows
+// the leopard fall off the final crag instead of landing on it.
+export function leopardFellShort(leopardProgress, accuracy) {
+  return leopardProgress >= 1 && accuracy < LANDING_ACCURACY;
+}

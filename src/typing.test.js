@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeAccuracy, computeCharDurations, computeExpectedProgress, computeLeopardProgress, computeWpm, extrapolateTypedLength, getCharStatuses } from "./typing.js";
+import { computeAccuracy, computeCharDurations, computeExpectedProgress, computeLeopardProgress, computeWpm, extrapolateTypedLength, getCharStatuses, leopardFellShort } from "./typing.js";
 
 describe("getCharStatuses", () => {
   it("marks fully typed correct text as correct", () => {
@@ -112,6 +112,24 @@ describe("extrapolateTypedLength", () => {
   it("clamps the pace estimate's time divisor so an instant first keystroke doesn't guess wildly high", () => {
     // 5 chars at t=0 would be an infinite rate without the 0.1s floor.
     expect(extrapolateTypedLength(5, 0, 0.2, 25)).toBe(Math.min(25, 5 + (5 / 0.1) * 0.2));
+  });
+});
+
+describe("leopardFellShort", () => {
+  it("is false when the pace didn't even reach the peak, regardless of accuracy", () => {
+    expect(leopardFellShort(0.8, 50)).toBe(false);
+  });
+
+  it("is false when the pace reached the peak and accuracy was clean", () => {
+    expect(leopardFellShort(1, 95)).toBe(false);
+  });
+
+  it("is true when the pace reached the peak but accuracy was too sloppy", () => {
+    expect(leopardFellShort(1, 89)).toBe(true);
+  });
+
+  it("treats exactly the threshold accuracy as clean", () => {
+    expect(leopardFellShort(1, 90)).toBe(false);
   });
 });
 
