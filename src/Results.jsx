@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { groupBreakdown } from "./progression.js";
+import { groupBreakdown, gradeLabelForWpmTarget } from "./progression.js";
 import { leopardFellShort } from "./typing.js";
 import SnowLeopard from "./SnowLeopard.jsx";
 
@@ -23,6 +23,7 @@ const DIRECTION_MESSAGES = {
 export default function Results({ lesson, stats, wpmTarget, onPlayAgain, onBackToMenu }) {
   const groups = groupBreakdown(stats.letterStats);
   const goalPercent = wpmTarget ? Math.min(100, Math.round((stats.wpm / wpmTarget) * 100)) : null;
+  const gradeLabel = wpmTarget ? gradeLabelForWpmTarget(wpmTarget) : null;
   const leopardProgress = wpmTarget ? Math.min(1, stats.wpm / wpmTarget) : 1;
   const fell = leopardFellShort(leopardProgress, stats.accuracy);
 
@@ -50,7 +51,7 @@ export default function Results({ lesson, stats, wpmTarget, onPlayAgain, onBackT
       {goalPercent != null && (
         <div style={{ width: "100%", maxWidth: 260 }}>
           <div style={{ fontSize: 12, color: "#888", marginBottom: 4, textAlign: "center" }}>
-            {stats.wpm} / {wpmTarget} wpm goal
+            {stats.wpm} / {wpmTarget} wpm goal{gradeLabel ? ` (${gradeLabel})` : ""}
           </div>
           <div style={{ height: 10, borderRadius: 5, background: "#333", overflow: "hidden" }}>
             <div

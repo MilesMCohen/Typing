@@ -86,6 +86,10 @@ export const GRADE_WPM_TARGETS = [
 
 export const DEFAULT_WPM_TARGET = 20;
 
+export function gradeLabelForWpmTarget(wpmTarget) {
+  return GRADE_WPM_TARGETS.find((grade) => grade.wpm === wpmTarget)?.label ?? null;
+}
+
 const ADVANCE_ACCURACY = 95;
 const HOLD_ACCURACY = 80;
 const REGRESS_ACCURACY = 75;
