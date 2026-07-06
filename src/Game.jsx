@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { getCharStatuses, computeAccuracy, computeWpm } from "./typing.js";
+import { getCharStatuses, computeAccuracy, computeWpm, computeCharDurations } from "./typing.js";
 import { getLetterStats } from "./progression.js";
 import { WORDS_PER_LINE, splitIntoLines } from "./lessons.js";
 import SnowLeopard from "./SnowLeopard.jsx";
@@ -22,6 +22,7 @@ export default function Game({ lesson, words, onComplete, onExit }) {
   const target = words.join(" ");
   const [typed, setTyped] = useState("");
   const startTimeRef = useRef(null);
+  const keyTimestampsRef = useRef([]);
   const inputRef = useRef(null);
 
   const lines = useMemo(() => splitIntoLines(words, WORDS_PER_LINE), [words]);
@@ -37,16 +38,24 @@ export default function Game({ lesson, words, onComplete, onExit }) {
       const elapsedSeconds = (Date.now() - startTimeRef.current) / 1000;
       const wpm = computeWpm(target.length, elapsedSeconds);
       const accuracy = computeAccuracy(target, typed);
-      const letterStats = getLetterStats(target, typed);
+      const durations = computeCharDurations(keyTimestampsRef.current, startTimeRef.current);
+      const letterStats = getLetterStats(target, typed, durations);
       onComplete({ wpm, accuracy, letterStats });
     }
   }, [typed, target, onComplete]);
 
   const handleChange = (e) => {
-    if (startTimeRef.current === null && e.target.value.length > 0) {
-      startTimeRef.current = Date.now();
+    const value = e.target.value.slice(0, target.length);
+    const now = Date.now();
+    if (startTimeRef.current === null && value.length > 0) {
+      startTimeRef.current = now;
     }
-    setTyped(e.target.value.slice(0, target.length));
+    if (value.length > typed.length) {
+      keyTimestampsRef.current.push(...Array(value.length - typed.length).fill(now));
+    } else if (value.length < typed.length) {
+      keyTimestampsRef.current.length = value.length;
+    }
+    setTyped(value);
   };
 
   const handleKeyDown = (e) => {

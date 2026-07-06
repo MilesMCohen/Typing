@@ -15,14 +15,16 @@ import {
   evaluateTestResult,
   generateRoundWords,
   getLetterStats,
-  letterBreakdown,
+  groupBreakdown,
+  groupForChar,
+  groupLabel,
   minWpmForTarget,
   stageIncludesCapitals,
   stageIncludesNumbers,
   stageIncludesSymbols,
   stageKeysHint,
   unlockedLettersForStage,
-  weakLetters,
+  weakGroups,
 } from "./progression.js";
 
 describe("unlockedLettersForStage", () => {
@@ -62,42 +64,89 @@ describe("unlockedLettersForStage", () => {
   });
 });
 
-describe("getLetterStats", () => {
-  it("counts attempts and correct hits per letter, ignoring spaces", () => {
-    expect(getLetterStats("ab ab", "ax ab")).toEqual({
-      a: { attempts: 2, correct: 2 },
-      b: { attempts: 2, correct: 1 },
-    });
+describe("groupForChar", () => {
+  it("maps every letter in the same physical row onto the same group", () => {
+    expect(groupForChar("f")).toBe("home-row");
+    expect(groupForChar("j")).toBe("home-row");
+    expect(groupForChar("a")).toBe("home-row");
+  });
+
+  it("gives a different group to a letter on a different row", () => {
+    expect(groupForChar("q")).toBe("top-row");
+    expect(groupForChar("z")).toBe("bottom-row");
+  });
+
+  it("groups capitals by the opposite-hand shift key they need, not their row", () => {
+    expect(groupForChar("F")).toBe("capitals-right"); // f is a left-hand key -> right shift
+    expect(groupForChar("J")).toBe("capitals-left"); // j is a right-hand key -> left shift
+    expect(groupForChar("Q")).toBe("capitals-right"); // q is a left-hand key -> right shift
+  });
+
+  it("groups digits together and punctuation by which hand types it", () => {
+    expect(groupForChar("7")).toBe("0-9");
+    expect(groupForChar(",")).toBe("punctuation-right"); // unshifted, typed with the right hand
+    expect(groupForChar("!")).toBe("punctuation-right"); // Shift+1: "1" is left-hand -> right shift
+    expect(groupForChar("?")).toBe("punctuation-left"); // Shift+/: "/" is right-hand -> left shift
   });
 });
 
-describe("letterBreakdown", () => {
-  it("computes rounded per-letter accuracy, sorted worst first", () => {
-    const result = letterBreakdown({
-      a: { attempts: 4, correct: 4 },
-      b: { attempts: 4, correct: 1 },
+describe("groupLabel", () => {
+  it("gives each row a readable name", () => {
+    expect(groupLabel("home-row")).toBe("Home Row");
+    expect(groupLabel("top-row")).toBe("Top Row");
+    expect(groupLabel("bottom-row")).toBe("Bottom Row");
+  });
+
+  it("gives the category groups a readable name too", () => {
+    expect(groupLabel("capitals-left")).toBe("Capitals (Left Shift)");
+    expect(groupLabel("capitals-right")).toBe("Capitals (Right Shift)");
+    expect(groupLabel("punctuation-left")).toBe("Punctuation (Left Hand)");
+    expect(groupLabel("punctuation-right")).toBe("Punctuation (Right Hand)");
+    expect(groupLabel("0-9")).toBe("0-9");
+  });
+});
+
+describe("getLetterStats", () => {
+  it("counts attempts and correct hits per row group, ignoring spaces", () => {
+    expect(getLetterStats("ae ae", "ax ae")).toEqual({
+      "home-row": { attempts: 2, correct: 2, totalMs: 0, timedAttempts: 0 },
+      "top-row": { attempts: 2, correct: 1, totalMs: 0, timedAttempts: 0 },
+    });
+  });
+
+  it("folds a per-character duration into its group's speed total", () => {
+    const stats = getLetterStats("aa", "aa", [200, 100]);
+    expect(stats["home-row"]).toEqual({ attempts: 2, correct: 2, totalMs: 300, timedAttempts: 2 });
+  });
+});
+
+describe("groupBreakdown", () => {
+  it("computes rounded per-group accuracy and wpm, sorted worst-accuracy first", () => {
+    const result = groupBreakdown({
+      "home-row": { attempts: 4, correct: 4, totalMs: 800, timedAttempts: 4 }, // 200ms/char -> 60 wpm
+      "top-row": { attempts: 4, correct: 1, totalMs: 0, timedAttempts: 0 },
     });
     expect(result).toEqual([
-      { letter: "b", attempts: 4, accuracy: 25 },
-      { letter: "a", attempts: 4, accuracy: 100 },
+      { group: "top-row", label: "Top Row", attempts: 4, accuracy: 25, wpm: null },
+      { group: "home-row", label: "Home Row", attempts: 4, accuracy: 100, wpm: 60 },
     ]);
   });
 
   it("returns an empty list for missing stats", () => {
-    expect(letterBreakdown(undefined)).toEqual([]);
+    expect(groupBreakdown(undefined)).toEqual([]);
   });
 });
 
 describe("aggregateHistory", () => {
-  it("averages accuracy/wpm and sums per-letter totals across entries", () => {
+  it("averages accuracy/wpm and sums per-group totals across entries", () => {
     const history = [
-      { accuracy: 80, wpm: 10, letterStats: { a: { attempts: 4, correct: 2 } } },
-      { accuracy: 100, wpm: 20, letterStats: { a: { attempts: 4, correct: 4 } } },
+      { accuracy: 80, wpm: 10, letterStats: { a: { attempts: 4, correct: 2, totalMs: 800, timedAttempts: 4 } } },
+      { accuracy: 100, wpm: 20, letterStats: { a: { attempts: 4, correct: 4, totalMs: 400, timedAttempts: 4 } } },
     ];
     const result = aggregateHistory(history);
     expect(result.avgAccuracy).toBe(90);
     expect(result.avgWpm).toBe(15);
-    expect(result.letterTotals).toEqual({ a: { attempts: 8, correct: 6 } });
+    expect(result.groupTotals).toEqual({ a: { attempts: 8, correct: 6, totalMs: 1200, timedAttempts: 8 } });
   });
 
   it("only considers the most recent MAX_HISTORY entries", () => {
@@ -107,18 +156,18 @@ describe("aggregateHistory", () => {
   });
 
   it("returns nulls for an empty history", () => {
-    expect(aggregateHistory([])).toEqual({ count: 0, avgAccuracy: null, avgWpm: null, letterTotals: {} });
+    expect(aggregateHistory([])).toEqual({ count: 0, avgAccuracy: null, avgWpm: null, groupTotals: {} });
   });
 });
 
-describe("weakLetters", () => {
-  it("flags unlocked letters at or above the error rate threshold with enough attempts", () => {
+describe("weakGroups", () => {
+  it("flags unlocked groups at or above the error rate threshold with enough attempts", () => {
     const totals = {
       a: { attempts: 10, correct: 5 }, // 50% error - weak
       b: { attempts: 10, correct: 9 }, // 10% error - fine
       c: { attempts: 2, correct: 0 }, // 100% error but too few attempts
     };
-    expect(weakLetters(totals, ["a", "b", "c"])).toEqual(["a"]);
+    expect(weakGroups(totals, ["a", "b", "c"])).toEqual(["a"]);
   });
 
   it("sorts weakest first and caps at max", () => {
@@ -127,7 +176,7 @@ describe("weakLetters", () => {
       b: { attempts: 10, correct: 2 }, // 80%
       c: { attempts: 10, correct: 5 }, // 50%
     };
-    expect(weakLetters(totals, ["a", "b", "c"], { max: 2 })).toEqual(["b", "c"]);
+    expect(weakGroups(totals, ["a", "b", "c"], { max: 2 })).toEqual(["b", "c"]);
   });
 });
 
@@ -321,7 +370,7 @@ describe("buildLessonPlan", () => {
     expect(plan.direction).toBe("start");
     expect(plan.unlockedLetters).toEqual(KEY_STAGES[0]);
     expect(plan.words.length).toBeGreaterThan(0);
-    expect(plan.label).toBe("Level 1");
+    expect(plan.label).toBe("Home Row: F & J");
   });
 
   it("threads a custom wpm target through to the stage decision", () => {

@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { letterBreakdown } from "./progression.js";
+import { groupBreakdown } from "./progression.js";
 import SnowLeopard from "./SnowLeopard.jsx";
 
 const buttonStyle = {
@@ -20,7 +20,7 @@ const DIRECTION_MESSAGES = {
 };
 
 export default function Results({ lesson, stats, wpmTarget, onPlayAgain, onBackToMenu }) {
-  const letters = letterBreakdown(stats.letterStats);
+  const groups = groupBreakdown(stats.letterStats);
   const goalPercent = wpmTarget ? Math.min(100, Math.round((stats.wpm / wpmTarget) * 100)) : null;
 
   return (
@@ -63,15 +63,15 @@ export default function Results({ lesson, stats, wpmTarget, onPlayAgain, onBackT
       )}
 
       <div style={{ fontSize: 16, color: "#ccc" }}>{DIRECTION_MESSAGES[stats.direction]}</div>
-      {stats.weakLetters?.length > 0 && (
-        <div style={{ fontSize: 14, color: "#f96" }}>Extra practice: {stats.weakLetters.join(", ")}</div>
+      {stats.weakGroups?.length > 0 && (
+        <div style={{ fontSize: 14, color: "#f96" }}>Extra practice: {stats.weakGroups.join(", ")}</div>
       )}
 
-      {letters.length > 0 && (
+      {groups.length > 0 && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "center", maxWidth: 400 }}>
-          {letters.map(({ letter, accuracy, attempts }) => (
+          {groups.map(({ group, label, accuracy, wpm, attempts }) => (
             <div
-              key={letter}
+              key={group}
               title={`${attempts} typed`}
               style={{
                 fontFamily: "monospace",
@@ -82,7 +82,7 @@ export default function Results({ lesson, stats, wpmTarget, onPlayAgain, onBackT
                 color: "white",
               }}
             >
-              {letter} {accuracy}%
+              {label} {accuracy}%{wpm != null ? ` · ${wpm} wpm` : ""}
             </div>
           ))}
         </div>

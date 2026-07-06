@@ -116,7 +116,7 @@ export default function App() {
         letterStats: roundStats.letterStats,
         direction: lessonPlan.direction,
         unlockedLetters: lessonPlan.unlockedLetters,
-        weakLetters: lessonPlan.weakLetters,
+        weakGroups: lessonPlan.weakGroups,
       });
       recordScore(roundStats.wpm);
       setScreen("results");

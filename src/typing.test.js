@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeAccuracy, computeWpm, getCharStatuses } from "./typing.js";
+import { computeAccuracy, computeCharDurations, computeWpm, getCharStatuses } from "./typing.js";
 
 describe("getCharStatuses", () => {
   it("marks fully typed correct text as correct", () => {
@@ -41,5 +41,15 @@ describe("computeWpm", () => {
 
   it("clamps elapsed time so instant completion doesn't divide by zero", () => {
     expect(computeWpm(25, 0)).toBe(Math.round(25 / 5 / (0.1 / 60)));
+  });
+});
+
+describe("computeCharDurations", () => {
+  it("measures each keystroke against the one before it, and the first against the start time", () => {
+    expect(computeCharDurations([1200, 1350, 1400], 1000)).toEqual([200, 150, 50]);
+  });
+
+  it("returns an empty list when nothing was typed", () => {
+    expect(computeCharDurations([], 1000)).toEqual([]);
   });
 });

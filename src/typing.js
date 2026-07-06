@@ -18,3 +18,10 @@ export function computeWpm(charCount, elapsedSeconds) {
   const minutes = Math.max(elapsedSeconds, 0.1) / 60;
   return Math.round(charCount / 5 / minutes);
 }
+
+// timestamps[i] is the ms-since-epoch when the character at index i was
+// typed; returns how long each keystroke took (ms since the previous one,
+// or since startTime for the first character).
+export function computeCharDurations(timestamps, startTime) {
+  return timestamps.map((t, i) => t - (i === 0 ? startTime : timestamps[i - 1]));
+}
