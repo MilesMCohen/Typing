@@ -187,6 +187,7 @@ export default function App() {
             key="game"
             lesson={lessonPlan}
             words={lessonPlan.words}
+            wpmTarget={wpmTarget}
             onComplete={handleComplete}
             onExit={() => setScreen("menu")}
           />
@@ -209,6 +210,7 @@ export default function App() {
             key="test-game"
             lesson={testLevel}
             words={testWords}
+            wpmTarget={wpmTarget}
             onComplete={handleTestComplete}
             onExit={() => setScreen("test-select")}
           />

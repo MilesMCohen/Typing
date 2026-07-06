@@ -1,15 +1,22 @@
 import { useEffect, useRef } from "react";
 import { Application, Container, Graphics } from "pixi.js";
 import { hash, jitter, buildCrags, leopardPosition } from "./terrain.js";
+import { computeLeopardProgress, computeExpectedProgress, extrapolateTypedLength } from "./typing.js";
 
 const CANVAS_W = 360;
 const CANVAS_H = 180;
 const ANCHOR_X = 120; // fixed screen x where the leopard always sits; the world scrolls under it
-const EASE = 0.1; // how quickly the displayed position chases the real typing progress
+const EASE = 0.1; // how quickly the displayed position chases the real typing/prey progress
 const NUM_CRAGS = 9;
 const CRAGS = buildCrags(NUM_CRAGS);
-const PEAK = CRAGS[CRAGS.length - 1];
 const SNOW_LINE = 95;
+
+// The prey runs its own, differently-bumpy set of crags (see buildCrags'
+// `seed` param) that shares CRAGS' start and peak — so during a lesson it
+// looks like a separate animal on a separate ridge, but the two tracks
+// reunite at the same final crag.
+const PREY_SEED = 1000;
+const PREY_CRAGS = buildCrags(NUM_CRAGS, PREY_SEED);
 
 function crestPolygon(wx, wy, i) {
   const apexHalfW = 7;
@@ -70,13 +77,56 @@ function buildLeopard() {
   return { root, bob, tailPivot };
 }
 
-export default function SnowLeopard({ progress = 0 }) {
+// A small mountain hare — the leopard's prey — running at the target pace.
+function buildPrey() {
+  const root = new Container();
+
+  const bob = new Container();
+  root.addChild(bob);
+
+  const body = new Graphics()
+    .ellipse(0, 0, 7, 5)
+    .fill(0xc9a06b)
+    .circle(6, -4, 4)
+    .fill(0xc9a06b)
+    .poly([3, -7, 4, -12, 6, -7])
+    .fill(0xc9a06b)
+    .poly([6, -7, 8, -11, 8, -6])
+    .fill(0xc9a06b)
+    .rect(-5, 3, 2, 4)
+    .fill(0xc9a06b)
+    .rect(3, 3, 2, 4)
+    .fill(0xc9a06b)
+    .circle(7, -5, 0.8)
+    .fill(0x4a3521);
+  bob.addChild(body);
+
+  return { root, bob };
+}
+
+// In "live" mode (typedLength/targetLength/wpmTarget/startedAt all provided,
+// used while a lesson is in progress) both animals' positions are computed
+// fresh every animation frame from real elapsed time, instead of only when
+// React re-renders on a keystroke — see extrapolateTypedLength for why.
+// Otherwise (Menu/Results/TestResults, showing a fixed before/after state)
+// the static `progress`/`preyProgress` props are used directly.
+export default function SnowLeopard({ progress = 0, preyProgress = 0, typedLength, targetLength, wpmTarget, startedAt = null, lastKeystrokeAt = null }) {
   const hostRef = useRef(null);
   const progressRef = useRef(progress);
+  const preyProgressRef = useRef(preyProgress);
+  const liveRef = useRef({ typedLength, targetLength, wpmTarget, startedAt, lastKeystrokeAt });
 
   useEffect(() => {
     progressRef.current = progress;
   }, [progress]);
+
+  useEffect(() => {
+    preyProgressRef.current = preyProgress;
+  }, [preyProgress]);
+
+  useEffect(() => {
+    liveRef.current = { typedLength, targetLength, wpmTarget, startedAt, lastKeystrokeAt };
+  }, [typedLength, targetLength, wpmTarget, startedAt, lastKeystrokeAt]);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -106,9 +156,10 @@ export default function SnowLeopard({ progress = 0 }) {
 
         const farLayer = new Container();
         const midLayer = new Container();
+        const preyLayer = new Container();
         const terrainLayer = new Container();
         const snowLayer = new Container();
-        app.stage.addChild(farLayer, midLayer, terrainLayer, snowLayer);
+        app.stage.addChild(farLayer, midLayer, preyLayer, terrainLayer, snowLayer);
 
         farLayer.addChild(
           new Graphics()
@@ -121,6 +172,21 @@ export default function SnowLeopard({ progress = 0 }) {
             .fill({ color: 0x2b3a4a, alpha: 0.95 })
         );
 
+        const preyTerrainArt = new Graphics();
+        PREY_CRAGS.forEach((c, i) => {
+          preyTerrainArt.poly(crestPolygon(c.worldX, c.y, i + PREY_SEED)).fill({ color: 0x3a4a5a, alpha: 0.75 });
+          if (c.y < SNOW_LINE) {
+            const capHalf = 5;
+            preyTerrainArt
+              .poly([c.worldX, c.y, c.worldX + capHalf, c.y + 10, c.worldX - capHalf, c.y + 10])
+              .fill({ color: 0xc9d7e4, alpha: 0.85 });
+          }
+        });
+        preyLayer.addChild(preyTerrainArt);
+
+        const { root: prey, bob: preyBob } = buildPrey();
+        preyLayer.addChild(prey);
+
         const terrainArt = new Graphics();
         CRAGS.forEach((c, i) => {
           terrainArt.poly(crestPolygon(c.worldX, c.y, i)).fill(0x4a5b6c);
@@ -132,14 +198,6 @@ export default function SnowLeopard({ progress = 0 }) {
           }
         });
         terrainLayer.addChild(terrainArt);
-
-        const food = new Graphics()
-          .ellipse(0, 0, 7, 5)
-          .fill(0x8a6a4a)
-          .circle(-6, -3, 2.5)
-          .fill(0x8a6a4a);
-        food.position.set(PEAK.worldX, PEAK.y - 14);
-        terrainLayer.addChild(food);
 
         const { root: leopard, bob, tailPivot } = buildLeopard();
         terrainLayer.addChild(leopard);
@@ -154,17 +212,36 @@ export default function SnowLeopard({ progress = 0 }) {
         });
 
         let displayed = progressRef.current;
+        let displayedPrey = preyProgressRef.current;
         let elapsed = 0;
 
         const tick = (ticker) => {
           const dt = ticker.deltaTime;
           elapsed += ticker.deltaMS / 1000;
-          displayed += (progressRef.current - displayed) * Math.min(1, EASE * dt);
+
+          const live = liveRef.current;
+          let targetProgress = progressRef.current;
+          let targetPreyProgress = preyProgressRef.current;
+          if (live.targetLength != null && live.wpmTarget != null) {
+            const t = live.startedAt ? (Date.now() - live.startedAt) / 1000 : 0;
+            const knownElapsed = live.lastKeystrokeAt && live.startedAt ? (live.lastKeystrokeAt - live.startedAt) / 1000 : 0;
+            const predictedTyped = extrapolateTypedLength(live.typedLength, knownElapsed, t, live.targetLength);
+            targetProgress = computeLeopardProgress(predictedTyped, live.targetLength, t, live.wpmTarget);
+            targetPreyProgress = computeExpectedProgress(t, live.targetLength, live.wpmTarget);
+          }
+          // A keystroke can reveal that the extrapolated guess ran ahead of
+          // reality (typing slowed down since the last real data point).
+          // Rather than visibly rewinding to correct, hold position — i.e.
+          // stop advancing — until the live target catches back up past
+          // what's already on screen, then resume easing forward as normal.
+          displayed += (Math.max(targetProgress, displayed) - displayed) * Math.min(1, EASE * dt);
+          displayedPrey += (Math.max(targetPreyProgress, displayedPrey) - displayedPrey) * Math.min(1, EASE * dt);
 
           const { worldX, y } = leopardPosition(CRAGS, displayed);
           const cameraX = ANCHOR_X - worldX;
 
           terrainLayer.x = cameraX;
+          preyLayer.x = cameraX;
           midLayer.x = ANCHOR_X + (cameraX - ANCHOR_X) * 0.4;
           farLayer.x = ANCHOR_X + (cameraX - ANCHOR_X) * 0.15;
 
@@ -175,8 +252,11 @@ export default function SnowLeopard({ progress = 0 }) {
             : Math.sin(elapsed * 6) * 2;
           bob.scale.set(reachedPeak ? 1 + Math.abs(Math.sin(elapsed * 10)) * 0.15 : 1);
           tailPivot.rotation = Math.sin(elapsed * 5) * 0.35;
-          food.visible = !reachedPeak;
-          food.y = PEAK.y - 14 + Math.sin(elapsed * 3) * 3;
+
+          const { worldX: preyWorldX, y: preyY } = leopardPosition(PREY_CRAGS, displayedPrey);
+          prey.position.set(preyWorldX, preyY - 10);
+          prey.visible = !reachedPeak;
+          preyBob.y = Math.sin(elapsed * 7) * 2.5;
 
           for (const flake of snowflakes) {
             flake.y += flake._speed * (ticker.deltaMS / 1000);

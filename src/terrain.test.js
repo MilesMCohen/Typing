@@ -36,6 +36,14 @@ describe("buildCrags", () => {
   it("is deterministic across calls", () => {
     expect(buildCrags(9)).toEqual(crags);
   });
+
+  it("shares the start and peak crag with a differently-seeded track, but not the middle", () => {
+    const seeded = buildCrags(9, 1000);
+    expect(seeded[0]).toEqual(crags[0]);
+    expect(seeded[seeded.length - 1]).toEqual(crags[crags.length - 1]);
+    const middleDiffers = seeded.slice(1, -1).some((c, i) => c.worldX !== crags[i + 1].worldX || c.y !== crags[i + 1].y);
+    expect(middleDiffers).toBe(true);
+  });
 });
 
 describe("leopardPosition", () => {

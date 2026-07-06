@@ -8,15 +8,21 @@ export function jitter(i, amount) {
   return (hash(i) - Math.floor(hash(i))) * amount - amount / 2;
 }
 
-// Crags the leopard jumps between: ground at the start, bumpy mid-heights,
-// a tall snow-capped peak (with food waiting) at the end.
-export function buildCrags(numCrags) {
+// Crags the leopard (or its prey, see `seed`) jumps between: ground at the
+// start, bumpy mid-heights, a tall snow-capped peak at the end. `seed` lets a
+// second call generate a differently-bumpy middle section (so the prey looks
+// like it's leaping across its own terrain) while keeping the start and end
+// crags identical to the seed-0 track — that's what lets the two animals
+// visibly converge on the same peak at the end of a lesson.
+export function buildCrags(numCrags, seed = 0) {
   return Array.from({ length: numCrags }, (_, i) => {
-    const worldX = 60 + i * 150 + jitter(i, 30);
+    const isEndpoint = i === 0 || i === numCrags - 1;
+    const jitterIndex = isEndpoint ? i : i + seed;
+    const worldX = 60 + i * 150 + jitter(jitterIndex, 30);
     let y;
     if (i === 0) y = 150;
     else if (i === numCrags - 1) y = 34;
-    else y = 105 + jitter(i + 50, 44);
+    else y = 105 + jitter(jitterIndex + 50, 44);
     return { worldX, y };
   });
 }

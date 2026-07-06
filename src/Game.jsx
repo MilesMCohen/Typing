@@ -18,7 +18,7 @@ function displayChar(char) {
   return char === " " ? " " : char;
 }
 
-export default function Game({ lesson, words, onComplete, onExit }) {
+export default function Game({ lesson, words, wpmTarget, onComplete, onExit }) {
   const target = words.join(" ");
   const [typed, setTyped] = useState("");
   const startTimeRef = useRef(null);
@@ -26,8 +26,6 @@ export default function Game({ lesson, words, onComplete, onExit }) {
   const inputRef = useRef(null);
 
   const lines = useMemo(() => splitIntoLines(words, WORDS_PER_LINE), [words]);
-
-  const progress = target.length > 0 ? typed.length / target.length : 0;
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -79,7 +77,13 @@ export default function Game({ lesson, words, onComplete, onExit }) {
           Exit (Esc)
         </button>
       </div>
-      <SnowLeopard progress={progress} />
+      <SnowLeopard
+        typedLength={typed.length}
+        targetLength={target.length}
+        wpmTarget={wpmTarget}
+        startedAt={startTimeRef.current}
+        lastKeystrokeAt={keyTimestampsRef.current[keyTimestampsRef.current.length - 1] ?? null}
+      />
       <div
         style={{ fontSize: 28, fontFamily: "monospace", letterSpacing: 1, textAlign: "center", display: "flex", flexDirection: "column", gap: 32 }}
         onClick={() => inputRef.current?.focus()}
