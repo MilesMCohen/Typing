@@ -37,41 +37,122 @@ function backdropPolygon(points, baseY) {
   return [0, baseY, ...points, CANVAS_W, baseY, CANVAS_W, CANVAS_H, 0, CANVAS_H];
 }
 
+// Real snow leopards read as "not a housecat" mainly through four cues:
+// a very long, thick tail (nearly as long as the body, used for balance and
+// wrapped over the nose at rest), small rounded ears set low and flat
+// against the head (not tall triangles), a stocky low-slung body on short
+// legs with oversized paws (built for snow), and a smoky grey-white coat
+// covered in open rosettes rather than solid tabby spots.
+const FUR_BASE = 0xdedad2; // smoky cream-grey body
+const FUR_LIGHT = 0xf1efe6; // belly/muzzle/chest ruff
+const MARKING = 0x5b564c; // charcoal-brown rosette/spot ink
+
+function rosette(g, x, y, r) {
+  g.circle(x, y, r).fill(MARKING).circle(x, y, r * 0.5).fill(FUR_BASE);
+}
+
+function spot(g, x, y, r) {
+  g.circle(x, y, r).fill(MARKING);
+}
+
 function buildLeopard() {
   const root = new Container();
 
   const bob = new Container();
   root.addChild(bob);
 
+  // Long, thick tail that curls up and forward over the back.
   const tailPivot = new Container();
-  tailPivot.position.set(-10, 2);
+  tailPivot.position.set(-15, -1);
   const tail = new Graphics()
-    .poly([0, 0, -9, -4, -11, -13, -6, -15, -2, -6])
-    .fill(0xd9dde2);
+    .poly([
+      0, 2,
+      -8, -1,
+      -15, -8,
+      -18, -17,
+      -14, -22,
+      -10, -18,
+      -12, -10,
+      -6, -3,
+      1, -3,
+    ])
+    .fill(FUR_BASE);
+  spot(tail, -16, -13, 1.6);
+  spot(tail, -12, -6, 1.4);
+  spot(tail, -8, -1, 1.3);
+  tail
+    .circle(-15, -19, 2.6)
+    .fill(MARKING); // fluffy dark tip
   tailPivot.addChild(tail);
   bob.addChild(tailPivot);
 
-  const body = new Graphics()
-    .ellipse(0, 0, 12, 7)
-    .fill(0xe3e7ea)
-    .circle(10, -5, 6)
-    .fill(0xe3e7ea)
-    .poly([6, -10, 9, -14, 11, -9])
-    .fill(0xe3e7ea)
-    .poly([13, -10, 16, -14, 15, -8])
-    .fill(0xe3e7ea)
-    .rect(-8, 5, 3, 6)
-    .fill(0xe3e7ea)
-    .rect(4, 5, 3, 6)
-    .fill(0xe3e7ea)
-    .circle(-4, -2, 1.4)
-    .fill(0x9099a2)
-    .circle(2, 2, 1.4)
-    .fill(0x9099a2)
-    .circle(-8, 1, 1.2)
-    .fill(0x9099a2)
-    .circle(9, -6, 1)
-    .fill(0x9099a2);
+  const body = new Graphics();
+
+  // Short legs relative to a long torso, with big snowshoe paws.
+  body
+    .roundRect(-13, 3, 4.5, 7.5, 2)
+    .fill(FUR_BASE)
+    .ellipse(-10.75, 10.5, 3, 1.7)
+    .fill(FUR_BASE)
+    .roundRect(8, 3, 4.5, 7.5, 2)
+    .fill(FUR_BASE)
+    .ellipse(10.25, 10.5, 3, 1.7)
+    .fill(FUR_BASE);
+
+  // Long, lean torso — snow leopards read as elongated, not round-bodied.
+  body
+    .ellipse(0, 0, 17, 6.5)
+    .fill(FUR_BASE)
+    .ellipse(-2, 3.8, 12, 3)
+    .fill(FUR_LIGHT); // pale belly
+
+  // Small head, set low and forward — proportionally smaller than a
+  // cartoon housecat's — with a short muzzle instead of a pointed face.
+  body
+    .circle(15, -3, 4.8)
+    .fill(FUR_BASE)
+    .ellipse(19.3, -1, 2.7, 2.1)
+    .fill(FUR_LIGHT) // pale muzzle
+    .circle(21.5, -1.4, 0.8)
+    .fill(0x2b2723); // nose
+
+  // Ears: small, rounded, low on the skull — not tall pointed triangles.
+  body
+    .circle(12.3, -7.5, 1.9)
+    .fill(MARKING)
+    .circle(12.3, -7.1, 1)
+    .fill(FUR_BASE)
+    .circle(16.8, -7.5, 1.9)
+    .fill(MARKING)
+    .circle(16.8, -7.1, 1)
+    .fill(FUR_BASE);
+
+  // Eye + dark eye-liner streak running back toward the ear.
+  body
+    .poly([14.1, -5.1, 16.9, -5.5, 16.4, -4.4, 14.3, -4.4])
+    .fill(MARKING)
+    .circle(14.8, -4.7, 1.15)
+    .fill(0xeef2ef)
+    .circle(15, -4.7, 0.6)
+    .fill(0x2b2723);
+
+  // Forehead spots between the eyes and ears.
+  spot(body, 12.8, -9.6, 0.75);
+  spot(body, 14.8, -10.3, 0.75);
+  spot(body, 16.8, -9.6, 0.75);
+
+  // Rosettes and spots scattered across the back, flank, and legs.
+  rosette(body, -11, -3, 2.4);
+  rosette(body, -3.5, -4.5, 2.4);
+  rosette(body, 4, -3.8, 2.2);
+  rosette(body, 10, -2.8, 1.9);
+  spot(body, -14, 0.5, 1.2);
+  spot(body, -7, 2, 1.1);
+  spot(body, 0.5, 2.3, 1);
+  spot(body, 7, 2.5, 1);
+  spot(body, -9.5, 5, 0.9);
+  spot(body, 2.5, 5.5, 0.9);
+
   bob.addChild(body);
 
   return { root, bob, tailPivot };
