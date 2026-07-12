@@ -10,6 +10,7 @@ import Results from "./Results.jsx";
 import TestSelect from "./TestSelect.jsx";
 import TestResults from "./TestResults.jsx";
 import Settings from "./Settings.jsx";
+import LessonPlanView from "./LessonPlanView.jsx";
 
 const containerStyle = {
   fontFamily: "sans-serif",
@@ -108,6 +109,11 @@ export default function App() {
         accuracy: roundStats.accuracy,
         wpm: roundStats.wpm,
         letterStats: roundStats.letterStats,
+        // The exact words shown and the weak groups they were biased toward,
+        // recorded so the lesson-plan view can reconstruct this round's actual
+        // vs. desired key distribution after the fact.
+        words: lessonPlan.words,
+        weakGroupIds: lessonPlan.weakGroupIds,
       };
       persistHistory([...history, entry].slice(-5));
       setResultsData({
@@ -138,6 +144,8 @@ export default function App() {
         accuracy: roundStats.accuracy,
         wpm: roundStats.wpm,
         letterStats: roundStats.letterStats,
+        words: testWords,
+        weakGroupIds: [], // a placement test doesn't bias toward weak groups
       };
       // A test result resets the calibration: it replaces history rather than appending to it.
       persistHistory([entry]);
@@ -150,7 +158,7 @@ export default function App() {
       recordScore(roundStats.wpm);
       setScreen("test-results");
     },
-    [testLevel, wpmTarget, persistHistory, recordScore]
+    [testLevel, testWords, wpmTarget, persistHistory, recordScore]
   );
 
   const testLevelIndex = testLevel ? TEST_LEVELS.findIndex((l) => l.id === testLevel.id) : -1;
@@ -177,6 +185,15 @@ export default function App() {
             onStart={startLesson}
             onOpenTest={() => setScreen("test-select")}
             onOpenSettings={() => setScreen("settings")}
+            onOpenPlan={() => setScreen("plan-view")}
+          />
+        )}
+        {screen === "plan-view" && (
+          <LessonPlanView
+            key="plan-view"
+            upcomingPlan={nextPlan}
+            history={history}
+            onBack={() => setScreen("menu")}
           />
         )}
         {screen === "settings" && (

@@ -9,7 +9,7 @@ const buttonStyle = {
   cursor: "pointer",
 };
 
-export default function Menu({ user, bestScore, status, plan, wpmTarget, onSignIn, onSignOut, onStart, onOpenTest, onOpenSettings }) {
+export default function Menu({ user, bestScore, status, plan, wpmTarget, onSignIn, onSignOut, onStart, onOpenTest, onOpenSettings, onOpenPlan }) {
   return (
     <motion.div
       style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}
@@ -59,6 +59,9 @@ export default function Menu({ user, bestScore, status, plan, wpmTarget, onSignI
         </button>
         <button style={{ ...buttonStyle, background: "transparent", color: "#aaa", border: "1px solid #444", fontSize: 14 }} onClick={onOpenSettings}>
           Settings
+        </button>
+        <button style={{ ...buttonStyle, background: "transparent", color: "#aaa", border: "1px solid #444", fontSize: 14 }} onClick={onOpenPlan}>
+          Lesson Plan
         </button>
       </div>
     </motion.div>

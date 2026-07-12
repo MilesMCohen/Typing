@@ -442,11 +442,22 @@ export function buildLessonPlan(history, wpmTarget = DEFAULT_WPM_TARGET) {
     stageIndex,
     direction,
     unlockedLetters,
+    // weakGroups is the human-readable labels for display; weakGroupIds is the
+    // raw ids, kept so a played round can be persisted and later re-expanded
+    // into the exact weak characters used to bias its word selection.
     weakGroups: weak.map(groupLabel),
+    weakGroupIds: weak,
     label: stageLabel(stageIndex),
     keysHint: stageKeysHint(stageIndex),
     words,
   };
+}
+
+// Re-expands stored weak group ids back into the individual characters those
+// groups bias word selection toward (capitals/punctuation groups have no
+// letters of their own and contribute none), mirroring buildLessonPlan above.
+export function weakCharsForGroups(groupIds = []) {
+  return groupIds.flatMap(lettersInGroup);
 }
 
 export function buildTestRound(stageIndex, count = WORDS_PER_ROUND) {
@@ -471,4 +482,57 @@ export function evaluateTestResult(accuracy, wpm, wpmTarget = DEFAULT_WPM_TARGET
   if (accuracy < REGRESS_ACCURACY || wpm < minWpm) return "decrease";
   if (accuracy >= ADVANCE_ACCURACY && wpm >= wpmTarget) return "increase";
   return "fit";
+}
+
+// A standard QWERTY layout for the lesson-plan heatmap. Each row lists the
+// physical keys by the character they produce unshifted; the visualization
+// counts how often the round's words land on each of these keys.
+export const KEYBOARD_ROWS = [
+  ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-"],
+  ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"],
+  ["a", "s", "d", "f", "g", "h", "j", "k", "l", ";", "'"],
+  ["z", "x", "c", "v", "b", "n", "m", ",", ".", "/"],
+];
+
+// The physical key a punctuation char is produced on: its own key when
+// unshifted, or the base key it's shifted from ("!" is Shift+1, "?" is Shift+/,
+// ":" is Shift+;) — so shifted symbols heat up the key the finger actually presses.
+const PHYSICAL_KEY_FOR_SYMBOL = {
+  ".": ".", ",": ",", "'": "'", "-": "-", ";": ";",
+  "!": "1", "?": "/", ":": ";",
+};
+
+// Maps a target character onto the physical key it exercises (uppercase folds
+// onto its lowercase key — the shift is a separate finger, tracked elsewhere).
+// Returns null for spaces and anything not on the modeled keyboard.
+export function physicalKeyForChar(ch) {
+  if (!ch || ch === " ") return null;
+  const lower = ch.toLowerCase();
+  if (lower >= "a" && lower <= "z") return lower;
+  if (ch >= "0" && ch <= "9") return ch;
+  return PHYSICAL_KEY_FOR_SYMBOL[ch] ?? null;
+}
+
+// Counts how many times each physical key appears across a round's words,
+// returning { [key]: count }. Accepts either an array of words or a raw string.
+export function keyDistribution(words) {
+  const text = Array.isArray(words) ? words.join(" ") : String(words ?? "");
+  const counts = {};
+  for (const ch of text) {
+    const key = physicalKeyForChar(ch);
+    if (!key) continue;
+    counts[key] = (counts[key] ?? 0) + 1;
+  }
+  return counts;
+}
+
+const DESIRED_SAMPLE_WORDS = 2000;
+
+// The distribution a stage *aims* for, as opposed to the handful of words a
+// single round actually draws. generateRoundWords is random, so we estimate the
+// target by sampling a large batch from the very same generator and counting
+// keys — this captures unlocked letters, weak-letter weighting, and the
+// capital/number/symbol sprinkles at once without re-deriving any of that logic.
+export function desiredKeyDistribution(stageIndex, weakChars = [], samples = DESIRED_SAMPLE_WORDS) {
+  return keyDistribution(generateRoundWords(stageIndex, weakChars, samples));
 }

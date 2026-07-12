@@ -18,12 +18,15 @@ import {
   groupBreakdown,
   groupForChar,
   groupLabel,
+  keyDistribution,
   minWpmForTarget,
+  physicalKeyForChar,
   stageIncludesCapitals,
   stageIncludesNumbers,
   stageIncludesSymbols,
   stageKeysHint,
   unlockedLettersForStage,
+  weakCharsForGroups,
   weakGroups,
 } from "./progression.js";
 
@@ -363,6 +366,55 @@ describe("evaluateTestResult", () => {
   });
 });
 
+describe("physicalKeyForChar", () => {
+  it("folds uppercase onto its lowercase key and passes digits through", () => {
+    expect(physicalKeyForChar("f")).toBe("f");
+    expect(physicalKeyForChar("F")).toBe("f");
+    expect(physicalKeyForChar("7")).toBe("7");
+  });
+
+  it("maps shifted punctuation onto the base key the finger actually presses", () => {
+    expect(physicalKeyForChar(".")).toBe(".");
+    expect(physicalKeyForChar("!")).toBe("1"); // Shift+1
+    expect(physicalKeyForChar("?")).toBe("/"); // Shift+/
+    expect(physicalKeyForChar(":")).toBe(";"); // Shift+;
+  });
+
+  it("returns null for spaces and unmodeled characters", () => {
+    expect(physicalKeyForChar(" ")).toBeNull();
+    expect(physicalKeyForChar("")).toBeNull();
+    expect(physicalKeyForChar("€")).toBeNull();
+  });
+});
+
+describe("keyDistribution", () => {
+  it("counts each physical key across words, ignoring spaces", () => {
+    expect(keyDistribution(["fad", "as"])).toEqual({ f: 1, a: 2, d: 1, s: 1 });
+  });
+
+  it("accepts a raw string and folds case together", () => {
+    expect(keyDistribution("Fa")).toEqual({ f: 1, a: 1 });
+  });
+
+  it("counts shifted symbols on their base key", () => {
+    expect(keyDistribution("a!")).toEqual({ a: 1, "1": 1 });
+  });
+});
+
+describe("weakCharsForGroups", () => {
+  it("expands row groups into their letters", () => {
+    expect(weakCharsForGroups(["home-row"])).toEqual(unlockedLettersForStage(5));
+  });
+
+  it("contributes nothing for capital/punctuation groups", () => {
+    expect(weakCharsForGroups(["capitals-left", "punctuation-right"])).toEqual([]);
+  });
+
+  it("defaults to an empty list", () => {
+    expect(weakCharsForGroups()).toEqual([]);
+  });
+});
+
 describe("buildLessonPlan", () => {
   it("produces a lesson plan with matching stage metadata and a full round of words", () => {
     const plan = buildLessonPlan([]);
@@ -371,6 +423,15 @@ describe("buildLessonPlan", () => {
     expect(plan.unlockedLetters).toEqual(KEY_STAGES[0]);
     expect(plan.words.length).toBeGreaterThan(0);
     expect(plan.label).toBe("Home Row: F & J");
+  });
+
+  it("exposes weak group ids that re-expand to the same weak characters", () => {
+    const history = [
+      { stageIndex: 6, accuracy: 85, wpm: 20, letterStats: { "top-row": { attempts: 10, correct: 3 } } },
+    ];
+    const plan = buildLessonPlan(history);
+    expect(plan.weakGroupIds).toContain("top-row");
+    expect(weakCharsForGroups(plan.weakGroupIds)).toEqual(weakCharsForGroups(plan.weakGroupIds));
   });
 
   it("threads a custom wpm target through to the stage decision", () => {
