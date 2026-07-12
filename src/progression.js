@@ -1,4 +1,4 @@
-import { LESSONS, WORDS_PER_ROUND, randomWords } from "./lessons.js";
+import { WORD_BANK as RAW_WORD_BANK, WORDS_PER_ROUND, randomWords } from "./lessons.js";
 
 // Letters unlock a pair at a time, home row first, mirroring standard
 // touch-typing pedagogy (and the old Home Row / Upper Row / Full Keyboard
@@ -205,9 +205,7 @@ function unlockedGroupsForStage(stageIndex) {
   return [...groups];
 }
 
-const WORD_BANK = Array.from(
-  new Set(LESSONS.flatMap((lesson) => lesson.words.map((w) => w.toLowerCase())))
-);
+const WORD_BANK = Array.from(new Set(RAW_WORD_BANK.map((w) => w.toLowerCase())));
 
 // Named jumping-off points for the placement test, roughly in increasing
 // difficulty. stageIndex ties each one back into the same stage scale used

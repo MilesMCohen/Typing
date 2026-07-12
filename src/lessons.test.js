@@ -1,13 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { LESSONS, randomWords, splitIntoLines } from "./lessons.js";
+import { WORD_BANK, randomWords, splitIntoLines } from "./lessons.js";
 
-describe("LESSONS", () => {
-  it("each lesson has an id, label, and a non-empty word list", () => {
-    for (const lesson of LESSONS) {
-      expect(lesson.id).toBeTruthy();
-      expect(lesson.label).toBeTruthy();
-      expect(lesson.words.length).toBeGreaterThan(0);
-    }
+describe("WORD_BANK", () => {
+  it("is a large, non-empty bank", () => {
+    expect(WORD_BANK.length).toBeGreaterThan(300);
+  });
+
+  it("contains only lowercase a-z words of at least two letters", () => {
+    for (const word of WORD_BANK) expect(word).toMatch(/^[a-z]{2,}$/);
+  });
+
+  it("has no duplicate entries", () => {
+    expect(new Set(WORD_BANK).size).toBe(WORD_BANK.length);
   });
 });
 
